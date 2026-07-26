@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.kotlin.ksp)
 }
 
 android {
@@ -21,7 +23,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:model"))
+    // UseCase/Repository 시그니처에 모델 타입이 노출되므로 api로 전파한다.
+    api(project(":core:model"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    // Hilt DI (UseCase 생성자 주입용)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
+    testImplementation(libs.junit)
 }

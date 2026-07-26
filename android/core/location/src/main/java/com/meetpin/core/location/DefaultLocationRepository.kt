@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 
 /**
  * LocationRepository 구현체.
@@ -36,8 +37,15 @@ class DefaultLocationRepository(
         }
     }
 
+    /**
+     * 서버 연동 전이라 아직 아무 좌표도 수신되지 않은 상태에서도 구독자가 최초 1회는
+     * 값을 받아야 한다. (트래킹 화면의 combine이 첫 emission 없이는 영구 로딩 상태가 된다.)
+     * 따라서 빈 목록을 초깃값으로 방출한다.
+     */
     override fun observeGroupLocations(groupId: String): Flow<List<LocationUpdate>> {
-        return _groupLocations.asSharedFlow()
+        return _groupLocations.asSharedFlow().onStart {
+            if (_groupLocations.replayCache.isEmpty()) emit(emptyList())
+        }
     }
 
     override suspend fun sendLocation(locationUpdate: LocationUpdate): Result<Unit> {

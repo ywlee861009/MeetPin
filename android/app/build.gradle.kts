@@ -1,9 +1,30 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.ksp)
+}
+
+/**
+ * Google Maps API 키를 local.properties에서 읽는다. (local.properties는 VCS에 커밋하지 않음)
+ * 키가 없으면 빌드를 막지 않고 경고만 남긴다 — CI와 신규 개발자 온보딩을 막지 않기 위함.
+ * 키 발급 절차는 android/README.md 참고.
+ */
+val mapsApiKey: String = Properties().apply {
+    rootProject.file("local.properties")
+        .takeIf { it.exists() }
+        ?.inputStream()
+        ?.use { load(it) }
+}.getProperty("MAPS_API_KEY").orEmpty().also {
+    if (it.isBlank()) {
+        logger.warn(
+            "[MeetPin] local.properties에 MAPS_API_KEY가 없습니다. " +
+                "지도가 회색 화면으로 표시됩니다. 설정 방법은 android/README.md 참고."
+        )
+    }
 }
 
 android {
@@ -18,6 +39,9 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // AndroidManifest.xml의 com.google.android.geo.API_KEY 치환값
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
