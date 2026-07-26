@@ -1,0 +1,15 @@
+# [overview] core-domain-and-model
+
+## 🎯 목적 및 배경
+MeetPin 비즈니스 핵심 엔티티 객체(`MeetPinGroup`, `PinLocation`, `Participant`, `LocationUpdate`)를 정의하고, MVI 패턴에서 사용할 공통 아키텍처 베이스 클래스(`UiState`, `UiIntent`, `UiEffect`, `BaseViewModel`)를 구축합니다.
+
+---
+
+## 📋 하위 티켓 (Phases)
+- **`phase1_domain-entities.md`**: `:core:model` 및 `:core:domain` 내 도메인 객체 및 Repository 인터페이스 정의
+- **`phase2_mvi-base-framework.md`**: Compose & StateFlow 기반 MVI 베이스 아키텍처 작성
+
+---
+
+## 🔗 선행 관계
+- `project-multimodule-setup` 완료 후 진행
