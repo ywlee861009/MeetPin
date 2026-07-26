@@ -16,16 +16,14 @@ This document serves as the central configuration and instruction guide for Clau
 
 ---
 
-## 🛠️ 2. 기술 스택 & 코드 스타일 (Tech Stack & Coding Standards)
-- **UI Framework**: Jetpack Compose + Material 3
-- **Architecture**: Modern Android Architecture (Clean Architecture: Data - Domain - UI)
-- **Map & Location**: Google Maps SDK for Android (Maps Compose) + Google Play Services Fused Location Provider
-- **Dependency Injection**: Hilt
-- **Async & Reactive**: Kotlin Coroutines & Flow
-- **Code Style**:
-  - Kotlin 공식 코딩 스타일 및 Conventional Commits 준수.
-  - UI 컴포넌트는 단일 책임 원칙(SRP)을 따르고 `ui/components/`에 재사용 가능하게 분리.
-  - State hoisting 사용 및 ViewModel 중심의 단방향 데이터 흐름(UDF) 유지.
+## 🛠️ 2. 기술 스택 & 핵심 개발 원칙 (Tech Stack & Core Principles)
+- **자세한 개발 지침**: [`android/README.md`](file:///Users/leeyoungwoo/Desktop/AndroidProjects/MeetPin/android/README.md)
+- **필수 준수 원칙 4가지**:
+  1. **Jetpack Compose 필수**: 모든 UI는 선언형 Compose 기반 작성 (XML View 금지).
+  2. **MVI 패턴 준수**: Single `UiState`, `UiIntent/Event`, `UiEffect` 기반의 Model-View-Intent 아키텍처.
+  3. **멀티 모듈 구조**: `:app`, `:feature:*`, `:core:*` (domain, data, location, network, designsystem 등) 계층적 멀티 모듈 분리.
+  4. **관심사 분리 (SoC)**: UI, 비즈니스 로직, 데이터 수집 및 서비스 레이어 간 명확한 계층 및 역할 분리.
+- **주요 라이브러리**: Hilt DI, Google Maps SDK (Maps Compose), Fused Location Provider, Kotlin Coroutines & Flow.
 
 ---
 
