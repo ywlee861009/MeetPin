@@ -113,6 +113,7 @@ class LiveTrackingViewModel @Inject constructor(
 
             // 전원 도착 시 완료 화면으로 이동
             if (isAllArrived || group.status == GroupStatus.FINISHED) {
+                sendEffect(LiveTrackingEffect.StopLocationService)
                 sendEffect(LiveTrackingEffect.NavigateToCompletion(groupId))
             }
         }
@@ -125,7 +126,9 @@ class LiveTrackingViewModel @Inject constructor(
 
     private fun stopLocationSharing() {
         updateState { copy(isLocationSharingActive = false) }
-        // TODO: LocationTrackingService.stop() 호출 및 서버에 종료 알림
+        sendEffect(LiveTrackingEffect.StopLocationService)
+        
+        // TODO: 서버에 종료 알림 (API 필요)
     }
 
     private fun focusOnParticipant(userId: String) {

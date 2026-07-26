@@ -41,6 +41,8 @@ import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
+import androidx.compose.ui.platform.LocalContext
+import com.meetpin.core.location.LocationTrackingService
 import kotlinx.coroutines.flow.collectLatest
 
 /**
@@ -57,6 +59,7 @@ fun LiveTrackingScreen(
     onNavigateToCompletion: (String) -> Unit = {},
     viewModel: LiveTrackingViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -90,6 +93,9 @@ fun LiveTrackingScreen(
                 }
                 is LiveTrackingEffect.ShowError -> {
                     snackbarHostState.showSnackbar(effect.message)
+                }
+                is LiveTrackingEffect.StopLocationService -> {
+                    LocationTrackingService.stop(context)
                 }
             }
         }

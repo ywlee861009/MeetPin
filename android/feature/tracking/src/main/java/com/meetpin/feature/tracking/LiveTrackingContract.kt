@@ -58,4 +58,5 @@ sealed interface LiveTrackingEffect : UiEffect {
     data class ShowArrivalCelebration(val participantName: String) : LiveTrackingEffect
     data class NavigateToCompletion(val groupId: String) : LiveTrackingEffect
     data class ShowError(val message: String) : LiveTrackingEffect
+    data object StopLocationService : LiveTrackingEffect
 }
