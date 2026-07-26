@@ -42,6 +42,8 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.meetpin.core.location.LocationTrackingService
 import kotlinx.coroutines.flow.collectLatest
 
@@ -240,6 +242,7 @@ fun AnimatedParticipantMarker(
         // 커스텀 아바타 마커
         AvatarMarker(
             initial = participantMarker.participant.nickname.take(1),
+            profileImageUrl = participantMarker.participant.profileImageUrl,
             isArrived = participantMarker.participant.isArrived
         )
     }
@@ -251,6 +254,7 @@ fun AnimatedParticipantMarker(
 @Composable
 private fun AvatarMarker(
     initial: String,
+    profileImageUrl: String?,
     isArrived: Boolean
 ) {
     val bgColor = if (isArrived) {
@@ -271,12 +275,21 @@ private fun AvatarMarker(
             .background(bgColor),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initial,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = textColor
-        )
+        if (!profileImageUrl.isNullOrEmpty()) {
+            AsyncImage(
+                model = profileImageUrl,
+                contentDescription = "Profile Image",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Text(
+                text = initial,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+        }
     }
 }
 

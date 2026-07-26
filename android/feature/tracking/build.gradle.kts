@@ -53,4 +53,7 @@ dependencies {
 
     // Animation
     implementation(libs.androidx.compose.animation)
+
+    // Image Loading
+    implementation(libs.coil.compose)
 }
