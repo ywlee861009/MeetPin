@@ -328,6 +328,23 @@ fun AnimatedParticipantMarker(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 지각 페널티 배지
+            if (participantMarker.lateMinutes > 0) {
+                Box(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.errorContainer, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "지각 +${participantMarker.lateMinutes}분 (₩${participantMarker.currentPenalty})",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
             AnimatedVisibility(
                 visible = !participantMarker.chatMessage.isNullOrEmpty(),
                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 }),

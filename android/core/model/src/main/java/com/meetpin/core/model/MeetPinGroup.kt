@@ -9,6 +9,7 @@ data class MeetPinGroup(
     val status: GroupStatus = GroupStatus.LOBBY,
     val inviteCode: String,
     val participants: List<Participant> = emptyList(),
+    val penaltyPerMinute: Int = 0, // 지각 1분당 벌칙금 (예: 1000)
     val createdAt: Long = System.currentTimeMillis()
 ) {
     val isAllAccepted: Boolean

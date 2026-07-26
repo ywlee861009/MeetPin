@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 /**
@@ -46,10 +47,19 @@ class LiveTrackingViewModel @Inject constructor(
         updateState { copy(groupId = groupId, isLoading = true) }
 
         // 그룹 상태 + 위치 업데이트를 동시 관찰
+        // 그룹 상태 + 위치 업데이트 + 시간 타이머(1초 주기로 테스트)를 동시 관찰
         combine(
             meetPinRepository.observeGroup(groupId),
-            locationRepository.observeGroupLocations(groupId)
-        ) { group, locations ->
+            locationRepository.observeGroupLocations(groupId),
+            flow { while (true) { emit(System.currentTimeMillis()); kotlinx.coroutines.delay(1000) } }
+        ) { groupData, locations, currentTime ->
+            // [Mock Data Injection for Testing] 
+            // 약속 시간을 3분 전으로 설정하고 벌칙금을 1000원으로 설정
+            val group = groupData.copy(
+                scheduledAt = System.currentTimeMillis() - (3 * 60 * 1000), 
+                penaltyPerMinute = 1000
+            )
+
             val pinLocation = group.pinLocation
             val pinLatLng = LatLng(pinLocation.latitude, pinLocation.longitude)
 
@@ -74,6 +84,11 @@ class LiveTrackingViewModel @Inject constructor(
                     (distance / walkingSpeedMps / 60f).toInt().coerceAtLeast(1)
                 } else null
 
+                val lateMinutes = if (!participant.isArrived && group.scheduledAt < currentTime) {
+                    ((currentTime - group.scheduledAt) / 60000).toInt().coerceAtLeast(0)
+                } else 0
+                val currentPenalty = lateMinutes * group.penaltyPerMinute
+
                 ParticipantMarker(
                     participant = participant,
                     currentPosition = existingMarker?.targetPosition ?: position,
@@ -81,7 +96,9 @@ class LiveTrackingViewModel @Inject constructor(
                     distanceToPin = distance,
                     etaMinutes = etaMinutes,
                     chatMessage = existingMarker?.chatMessage,
-                    chatTimestamp = existingMarker?.chatTimestamp
+                    chatTimestamp = existingMarker?.chatTimestamp,
+                    lateMinutes = lateMinutes,
+                    currentPenalty = currentPenalty
                 )
             }
 

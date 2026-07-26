@@ -17,7 +17,9 @@ data class ParticipantMarker(
     val distanceToPin: Float = 0f, // 약속 장소까지 거리 (미터)
     val etaMinutes: Int? = null, // 예상 소요시간 (분)
     val chatMessage: String? = null, // 현재 표시될 말풍선 메시지
-    val chatTimestamp: Long? = null // 말풍선 표시 시작 시간
+    val chatTimestamp: Long? = null, // 말풍선 표시 시작 시간
+    val lateMinutes: Int = 0, // 지각 시간 (분)
+    val currentPenalty: Int = 0 // 현재 누적 벌칙금
 )
 
 /**
