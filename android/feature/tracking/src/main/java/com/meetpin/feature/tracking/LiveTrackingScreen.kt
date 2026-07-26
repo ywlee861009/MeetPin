@@ -117,36 +117,62 @@ fun LiveTrackingScreen(
                 CircularProgressIndicator()
             }
         } else {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                GoogleMap(
-                    modifier = Modifier.fillMaxSize(),
-                    cameraPositionState = cameraPositionState,
-                    properties = MapProperties(isMyLocationEnabled = true),
-                    uiSettings = MapUiSettings(
-                        zoomControlsEnabled = true,
-                        myLocationButtonEnabled = false
-                    )
-                ) {
-                    // 약속 장소 핀 마커
-                    state.pinLocation?.let { pinPos ->
-                        Marker(
-                            state = MarkerState(position = pinPos),
-                            title = state.pinPlaceName,
-                            snippet = "약속 장소"
-                        )
+                // 상단 라이브 공유 안내 바
+                LiveSharingTopBar(
+                    isActive = state.isLocationSharingActive,
+                    onStopSharing = {
+                        viewModel.processIntent(LiveTrackingIntent.StopLocationSharing)
                     }
+                )
 
-                    // 참가자 마커 (부드러운 보간 애니메이션)
-                    state.participantMarkers.forEach { marker ->
-                        AnimatedParticipantMarker(
-                            participantMarker = marker
+                // 지도 영역 (2/3)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(2f)
+                ) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState,
+                        properties = MapProperties(isMyLocationEnabled = true),
+                        uiSettings = MapUiSettings(
+                            zoomControlsEnabled = true,
+                            myLocationButtonEnabled = false
                         )
+                    ) {
+                        // 약속 장소 핀 마커
+                        state.pinLocation?.let { pinPos ->
+                            Marker(
+                                state = MarkerState(position = pinPos),
+                                title = state.pinPlaceName,
+                                snippet = "약속 장소"
+                            )
+                        }
+
+                        // 참가자 마커 (부드러운 보간 애니메이션)
+                        state.participantMarkers.forEach { marker ->
+                            AnimatedParticipantMarker(
+                                participantMarker = marker
+                            )
+                        }
                     }
                 }
+
+                // 하단 참가자 상태 시트 (1/3)
+                ParticipantStatusSheet(
+                    participantMarkers = state.participantMarkers,
+                    arrivedCount = state.arrivedCount,
+                    totalCount = state.totalCount,
+                    onParticipantClick = { userId ->
+                        viewModel.processIntent(LiveTrackingIntent.FocusOnParticipant(userId))
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
