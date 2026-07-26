@@ -5,9 +5,11 @@ MeetPin 비즈니스 핵심 엔티티 객체(`MeetPinGroup`, `PinLocation`, `Par
 
 ---
 
-## 📋 하위 티켓 (Phases)
-- **`phase1_domain-entities.md`**: `:core:model` 및 `:core:domain` 내 도메인 객체 및 Repository 인터페이스 정의
-- **`phase2_mvi-base-framework.md`**: Compose & StateFlow 기반 MVI 베이스 아키텍처 작성
+## 📋 진행 상태 (Status)
+| Phase | 내용 | 상태 |
+| :--- | :--- | :--- |
+| **`phase1_domain-entities.md`** | 도메인 모델 및 Repository 인터페이스 정의 | ✅ **완료 (Done)** |
+| **`phase2_mvi-base-framework.md`** | Compose & StateFlow 기반 MVI 베이스 아키텍처 작성 | ✅ **완료 (Done)** |
 
 ---
 
