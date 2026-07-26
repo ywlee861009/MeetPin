@@ -66,7 +66,8 @@ import java.util.Locale
 @Composable
 fun CreatePinScreen(
     hasLocationPermission: Boolean = false,
-    onNavigateToInviteShare: (String, String) -> Unit = { _, _ -> },
+    onNavigateToInviteShare: (groupId: String, groupTitle: String, inviteCode: String) -> Unit =
+        { _, _, _ -> },
     viewModel: CreatePinViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -87,7 +88,7 @@ fun CreatePinScreen(
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 is PinCreateEffect.NavigateToInviteShare -> {
-                    onNavigateToInviteShare(effect.groupId, effect.inviteCode)
+                    onNavigateToInviteShare(effect.groupId, effect.groupTitle, effect.inviteCode)
                 }
                 is PinCreateEffect.ShowError -> {
                     snackbarHostState.showSnackbar(effect.message)

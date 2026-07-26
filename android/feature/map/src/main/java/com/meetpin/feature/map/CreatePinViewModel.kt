@@ -73,6 +73,7 @@ class CreatePinViewModel @Inject constructor(
                     sendEffect(
                         PinCreateEffect.NavigateToInviteShare(
                             groupId = group.id,
+                            groupTitle = group.title,
                             inviteCode = group.inviteCode
                         )
                     )

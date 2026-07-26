@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -83,6 +84,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun LiveTrackingScreen(
     groupId: String,
+    hasLocationPermission: Boolean = false,
     onNavigateToCompletion: (String) -> Unit = {},
     viewModel: LiveTrackingViewModel = hiltViewModel()
 ) {
@@ -101,6 +103,24 @@ fun LiveTrackingScreen(
     // 트래킹 시작
     LaunchedEffect(groupId) {
         viewModel.processIntent(LiveTrackingIntent.StartTracking(groupId))
+    }
+
+    // 위치 공유 포그라운드 서비스의 수명을 이 화면의 수명에 맞춘다.
+    // 권한이 없으면 시작하지 않는다 — foregroundServiceType="location" 서비스를 권한 없이
+    // 시작하면 SecurityException으로 앱이 죽는다.
+    DisposableEffect(groupId, hasLocationPermission) {
+        if (hasLocationPermission) {
+            LocationTrackingService.start(context)
+        }
+        onDispose {
+            LocationTrackingService.stop(context)
+        }
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (!hasLocationPermission) {
+            snackbarHostState.showSnackbar("위치 권한이 없어 내 위치를 공유할 수 없습니다.")
+        }
     }
 
     // Side Effect 수신

@@ -48,6 +48,18 @@ sealed interface PinCreateIntent : UiIntent {
  * 핀 생성 화면의 일회성 부수효과.
  */
 sealed interface PinCreateEffect : UiEffect {
-    data class NavigateToInviteShare(val groupId: String, val inviteCode: String) : PinCreateEffect
+    /**
+     * 초대 공유 화면으로 이동.
+     *
+     * [groupTitle]은 `InviteShareScreen`이 요약 카드와 공유 문구에 쓰는 값이다.
+     * 해당 화면은 ViewModel이 없는 stateless 화면이라 제목을 스스로 조회할 수 없으므로
+     * 여기서 함께 실어 보낸다.
+     */
+    data class NavigateToInviteShare(
+        val groupId: String,
+        val groupTitle: String,
+        val inviteCode: String
+    ) : PinCreateEffect
+
     data class ShowError(val message: String) : PinCreateEffect
 }

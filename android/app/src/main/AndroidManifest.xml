@@ -29,10 +29,15 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!--
+            launchMode="singleTop": 앱이 실행 중일 때 초대 링크를 탭하면 MainActivity를 새로
+            만들지 않고 onNewIntent로 전달받는다. 기본값(standard)이면 인스턴스가 중복 생성된다.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.MeetPin">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -48,6 +53,20 @@
                     android:scheme="https"
                     android:host="meetpin.app"
                     android:pathPrefix="/invite" />
+            </intent-filter>
+
+            <!--
+                커스텀 스킴은 별도 filter로 분리한다. 위 https filter에 합치면 스킴/호스트가
+                교차 매칭되어 https://invite 같은 의도치 않은 URL까지 받게 된다.
+                autoVerify는 커스텀 스킴에 적용되지 않으므로 여기에는 붙이지 않는다.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="meetpin"
+                    android:host="invite" />
             </intent-filter>
         </activity>
 
