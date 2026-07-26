@@ -1,5 +1,17 @@
 # Phase 5: 네비게이션 배선 (구현된 화면 연결)
 
+> **⚠️ 이 phase는 `ai-tickets`의 `app-navigation` 티켓으로 대체되었습니다 (SUPERSEDED).**
+>
+> 같은 범위를 3개 phase로 세분화하고, 아래와 다른 두 가지 결정을 반영했습니다.
+> - **시작 목적지**: 아래 문서는 `map`이지만 `app-navigation`은 `createPin`으로 확정했습니다.
+>   `MapScreen`은 ViewModel이 없는 표시 전용 화면이라 `CreatePinScreen`과 지도 UI가 중복되고,
+>   진입 후 즉시 `createPin`으로 넘기는 껍데기 역할만 하게 됩니다.
+> - **딥링크 처리 방식**: 아래 문서는 `navDeepLink`를 제안하지만 `app-navigation`은
+>   이미 구현되어 있는 `DeepLinkHandler`를 사용합니다. `DeepLinkHandler`는
+>   `meetpin://invite?code=` 커스텀 스킴까지 파싱하므로 두 형식을 한 곳에서 처리할 수 있습니다.
+>
+> 아래 내용은 기록 목적으로 남겨둡니다. 구현은 `app-navigation` 티켓을 따르세요.
+
 > phase3 진행 중 발견된 항목입니다. 최초 계획에는 없었습니다.
 
 ## 🎯 목표
