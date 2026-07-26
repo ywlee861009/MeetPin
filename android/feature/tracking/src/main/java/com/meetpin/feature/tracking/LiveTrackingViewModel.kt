@@ -10,6 +10,7 @@ import com.meetpin.core.domain.usecase.CalculateLatePenaltyUseCase
 import com.meetpin.core.location.ArrivalDetector
 import com.meetpin.core.model.GroupStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -49,11 +50,21 @@ class LiveTrackingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 트래킹 관찰 코루틴. 재진입 시 이전 것을 반드시 취소한다.
+     *
+     * 화면이 dispose 후 재구성되면 [LiveTrackingIntent.StartTracking]이 다시 들어온다.
+     * 이전 collector를 취소하지 않으면 도착 축하 이펙트와 완료 화면 이동이 중복 발행된다.
+     */
+    private var trackingJob: Job? = null
+
     private fun startTracking(groupId: String) {
         updateState { copy(groupId = groupId, isLoading = true) }
 
+        trackingJob?.cancel()
+
         // 그룹 상태 + 위치 업데이트 + 지각 시간 갱신용 타이머를 동시 관찰
-        combine(
+        trackingJob = combine(
             meetPinRepository.observeGroup(groupId),
             locationRepository.observeGroupLocations(groupId),
             minuteTicker()
