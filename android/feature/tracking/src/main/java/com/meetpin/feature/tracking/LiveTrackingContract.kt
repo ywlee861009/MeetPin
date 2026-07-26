@@ -15,7 +15,9 @@ data class ParticipantMarker(
     val currentPosition: LatLng,
     val targetPosition: LatLng, // 보간 애니메이션 목표 위치
     val distanceToPin: Float = 0f, // 약속 장소까지 거리 (미터)
-    val etaMinutes: Int? = null // 예상 소요시간 (분)
+    val etaMinutes: Int? = null, // 예상 소요시간 (분)
+    val chatMessage: String? = null, // 현재 표시될 말풍선 메시지
+    val chatTimestamp: Long? = null // 말풍선 표시 시작 시간
 )
 
 /**
@@ -48,6 +50,7 @@ sealed interface LiveTrackingIntent : UiIntent {
     data object StopLocationSharing : LiveTrackingIntent
     data class FocusOnParticipant(val userId: String) : LiveTrackingIntent
     data object DismissArrivalEffect : LiveTrackingIntent
+    data class SendChat(val message: String) : LiveTrackingIntent
 }
 
 /**

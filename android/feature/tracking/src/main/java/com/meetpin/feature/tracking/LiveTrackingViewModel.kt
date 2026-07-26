@@ -38,6 +38,7 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.DismissArrivalEffect -> {
                 updateState { copy(showArrivalEffect = false) }
             }
+            is LiveTrackingIntent.SendChat -> sendChat(intent.message)
         }
     }
 
@@ -78,7 +79,9 @@ class LiveTrackingViewModel @Inject constructor(
                     currentPosition = existingMarker?.targetPosition ?: position,
                     targetPosition = position,
                     distanceToPin = distance,
-                    etaMinutes = etaMinutes
+                    etaMinutes = etaMinutes,
+                    chatMessage = existingMarker?.chatMessage,
+                    chatTimestamp = existingMarker?.chatTimestamp
                 )
             }
 
@@ -135,6 +138,33 @@ class LiveTrackingViewModel @Inject constructor(
         val marker = currentState.participantMarkers.find { it.participant.userId == userId }
         marker?.let {
             sendEffect(LiveTrackingEffect.AnimateCameraToPosition(it.targetPosition))
+        }
+    }
+
+    private fun sendChat(message: String) {
+        // TODO: 실제 앱에서는 서버로 채팅을 전송하고, 서버에서 받아서 업데이트해야 합니다.
+        // 현재는 로컬에서 내(첫 번째) 마커에 바로 표시되도록 모의(Mock) 구현합니다.
+        val updatedMarkers = currentState.participantMarkers.mapIndexed { index, marker ->
+            if (index == 0) { // 임시로 첫 번째 유저를 본인으로 가정
+                marker.copy(
+                    chatMessage = message,
+                    chatTimestamp = System.currentTimeMillis()
+                )
+            } else {
+                marker
+            }
+        }
+        updateState { copy(participantMarkers = updatedMarkers) }
+
+        // 4초 후 말풍선 닫기
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(4000)
+            updateState {
+                copy(participantMarkers = currentState.participantMarkers.mapIndexed { index, marker ->
+                    if (index == 0) marker.copy(chatMessage = null, chatTimestamp = null)
+                    else marker
+                })
+            }
         }
     }
 }

@@ -16,6 +16,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -28,6 +37,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.Spring
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -64,6 +89,7 @@ fun LiveTrackingScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var mapSize by remember { mutableStateOf(IntSize.Zero) }
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
@@ -143,6 +169,9 @@ fun LiveTrackingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(2f)
+                        .onGloballyPositioned { coordinates ->
+                            mapSize = coordinates.size
+                        }
                 ) {
                     GoogleMap(
                         modifier = Modifier.fillMaxSize(),
@@ -169,7 +198,64 @@ fun LiveTrackingScreen(
                             )
                         }
                     }
+
+                    // 오프스크린 말풍선 오버레이
+                    val projection = cameraPositionState.projection
+                    if (projection != null && mapSize.width > 0 && mapSize.height > 0) {
+                        state.participantMarkers.filter { !it.chatMessage.isNullOrEmpty() }.forEach { marker ->
+                            val point = projection.toScreenLocation(marker.targetPosition)
+                            val w = mapSize.width
+                            val h = mapSize.height
+
+                            // 화면 밖인지 체크 (패딩 여유 40px)
+                            if (point.x < -40 || point.y < -40 || point.x > w + 40 || point.y > h + 40) {
+                                val cx = w / 2f
+                                val cy = h / 2f
+                                val dx = point.x - cx
+                                val dy = point.y - cy
+
+                                val slope = if (dx != 0f) dy / dx else 1000000f
+
+                                val margin = 100f // 모서리 여백
+                                val xEdge = if (dx > 0) w.toFloat() - margin else margin
+                                var yIntersection = cy + slope * (xEdge - cx)
+
+                                var intersectX = xEdge
+                                var intersectY = yIntersection
+
+                                if (yIntersection < margin || yIntersection > h.toFloat() - margin) {
+                                    val yEdge = if (dy > 0) h.toFloat() - margin else margin
+                                    val xIntersection = cx + (yEdge - cy) / slope
+                                    intersectX = xIntersection
+                                    intersectY = yEdge
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .absoluteOffset(
+                                            x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
+                                            y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
+                                        )
+                                        .background(MaterialTheme.colorScheme.tertiaryContainer, RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = marker.chatMessage ?: "",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
+
+                // 채팅 입력 창
+                ChatInputBar(
+                    onSendChat = { message ->
+                        viewModel.processIntent(LiveTrackingIntent.SendChat(message))
+                    }
+                )
 
                 // 하단 참가자 상태 시트 (1/3)
                 ParticipantStatusSheet(
@@ -239,12 +325,37 @@ fun AnimatedParticipantMarker(
             "📍 ${formatDistance(participantMarker.distanceToPin)}"
         }
     ) {
-        // 커스텀 아바타 마커
-        AvatarMarker(
-            initial = participantMarker.participant.nickname.take(1),
-            profileImageUrl = participantMarker.participant.profileImageUrl,
-            isArrived = participantMarker.participant.isArrived
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            AnimatedVisibility(
+                visible = !participantMarker.chatMessage.isNullOrEmpty(),
+                enter = fadeIn() + slideInVertically(initialOffsetY = { 20 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { 20 })
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = participantMarker.chatMessage ?: "",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            if (!participantMarker.chatMessage.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // 커스텀 아바타 마커
+            AvatarMarker(
+                initial = participantMarker.participant.nickname.take(1),
+                profileImageUrl = participantMarker.participant.profileImageUrl,
+                isArrived = participantMarker.participant.isArrived
+            )
+        }
     }
 }
 
@@ -301,5 +412,36 @@ fun formatDistance(distanceMeters: Float): String {
         String.format("%.1fkm", distanceMeters / 1000)
     } else {
         String.format("%.0fm", distanceMeters)
+    }
+}
+
+@Composable
+fun ChatInputBar(onSendChat: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("채팅을 입력하세요...") },
+            singleLine = true
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        IconButton(
+            onClick = {
+                if (text.isNotBlank()) {
+                    onSendChat(text)
+                    text = ""
+                }
+            }
+        ) {
+            Icon(Icons.Default.Send, contentDescription = "Send Chat")
+        }
     }
 }
