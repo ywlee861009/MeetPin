@@ -21,3 +21,16 @@ dependencyResolutionManagement {
 
 rootProject.name = "MeetPin"
 include(":app")
+
+// Core modules
+include(":core:model")
+include(":core:domain")
+include(":core:designsystem")
+include(":core:network")
+include(":core:data")
+include(":core:location")
+
+// Feature modules
+include(":feature:map")
+include(":feature:lobby")
+include(":feature:tracking")
