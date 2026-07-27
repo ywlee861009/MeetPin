@@ -26,7 +26,11 @@
 | `phase2_maps-api-key-placeholder.md` | `MAPS_API_KEY` placeholder 배선 및 키 설정 절차 문서화 | ✅ 완료 |
 | `phase3_repository-impl-and-hilt-module.md` | `:core:data`에 Repository 구현체 + Hilt 모듈 작성으로 `assembleDebug` 성공 | ✅ 완료 |
 | `phase4_cleanup-mock-and-domain-usecase.md` | Mock 주입 제거, 타이머 정리, ETA/페널티 로직 UseCase 분리 및 단위 테스트 도입 | ✅ 완료 |
-| `phase5_navigation-wiring.md` | (phase3에서 발견) `NavHost` 배선으로 구현된 화면들을 실제로 도달 가능하게 만들기 | ⬜ 미착수 |
+| `phase5_navigation-wiring.md` | (phase3에서 발견) `NavHost` 배선으로 구현된 화면들을 실제로 도달 가능하게 만들기 | ↪️ `app-navigation` 티켓으로 대체 (SUPERSEDED) |
+
+**이 티켓은 전체 완료되었습니다.** phase1~4는 구현으로 완료했고, phase5는 범위를 3개 phase로
+세분화한 `app-navigation` 티켓이 대신 수행해 완료했습니다(시작 목적지와 딥링크 처리 방식이 달라진
+경위는 `phase5_navigation-wiring.md` 상단 참고). phase5 문서는 기록 목적으로만 남습니다.
 
 ## 🔄 선행 관계
 - phase1 ➔ phase2 ➔ phase3 ➔ phase4 순으로 진행
@@ -42,8 +46,12 @@
 ./gradlew :app:installDebug               에뮬레이터 실행 성공, 크래시 0건
 ```
 
-**아직 남은 것**
-- 네비게이션 미배선 → 구현된 feature 화면에 도달 불가 (phase5)
-- `MAPS_API_KEY` 실제 키 미설정 → 지도 회색 표시 (사용자가 `local.properties`에 추가해야 함)
-- `MeetPinRepository`는 인메모리 Fake — 서버 API 연동은 별도 티켓 필요
+**이 티켓 범위를 벗어나 남아 있는 것** (각각 별도 티켓에서 다룸)
+- `MAPS_API_KEY` 실제 키 미설정 → 지도 회색 표시 (`post-navigation-gaps` phase1)
+- `CompletionScreen` 도달 경로 부재 → 도착 판정을 그룹 상태에 반영하는 배선이 없음
+  (`post-navigation-gaps` phase4)
+- `MeetPinRepository`는 인메모리 Fake이고 `:core:network`는 소스가 없는 빈 모듈
+  — 서버 API 연동은 티켓 미작성
 - 테스트는 `:core:domain`에만 존재 — ViewModel/UI 테스트는 미도입
+- `MapScreen`은 시작 목적지가 `CreatePinScreen`으로 정해지면서 참조되지 않는 상태
+  — 삭제 또는 홈 화면 티켓에서의 재활용 여부 미결정
