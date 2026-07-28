@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.meetpin.core.map.google"
+    namespace = "com.kero.meetpin.core.map.google"
     compileSdk = 36
 
     defaultConfig {

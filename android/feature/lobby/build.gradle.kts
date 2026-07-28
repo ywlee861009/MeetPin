@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.meetpin.feature.lobby"
+    namespace = "com.kero.meetpin.feature.lobby"
     compileSdk = 36
 
     defaultConfig {

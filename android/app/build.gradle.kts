@@ -28,11 +28,11 @@ val mapsApiKey: String = Properties().apply {
 }
 
 android {
-    namespace = "com.meetpin.app"
+    namespace = "com.kero.meetpin.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.meetpin.app"
+        applicationId = "com.kero.meetpin"
         minSdk = 28
         targetSdk = 36
         versionCode = 1

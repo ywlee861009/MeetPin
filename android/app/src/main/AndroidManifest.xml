@@ -72,7 +72,7 @@
 
         <!-- Location Tracking Foreground Service -->
         <service
-            android:name="com.meetpin.core.location.LocationTrackingService"
+            android:name="com.kero.meetpin.core.location.LocationTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
     </application>

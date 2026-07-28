@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.meetpin.feature.tracking"
+    namespace = "com.kero.meetpin.feature.tracking"
     compileSdk = 36
 
     defaultConfig {

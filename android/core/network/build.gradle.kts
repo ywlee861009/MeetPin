@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.meetpin.core.network"
+    namespace = "com.kero.meetpin.core.network"
     compileSdk = 36
 
     defaultConfig {

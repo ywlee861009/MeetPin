@@ -42,7 +42,7 @@ MeetPin Android 프로젝트는 지속 가능하고 확장성 있는 코드베�
 1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트를 생성합니다.
 2. **APIs & Services ➔ Library**에서 **Maps SDK for Android**를 활성화합니다.
 3. **APIs & Services ➔ Credentials**에서 API 키를 발급합니다.
-   (권장: Android 앱 제한 — 패키지명 `com.meetpin.app` + 디버그 keystore SHA-1 지문 등록)
+   (권장: Android 앱 제한 — 패키지명 `com.kero.meetpin.app` + 디버그 keystore SHA-1 지문 등록)
 4. `android/local.properties`에 아래 한 줄을 추가합니다.
 
    ```properties
