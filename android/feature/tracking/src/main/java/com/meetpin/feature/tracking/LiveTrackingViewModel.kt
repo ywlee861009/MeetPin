@@ -1,12 +1,12 @@
 package com.meetpin.feature.tracking
 
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.maps.model.LatLng
 import com.meetpin.core.designsystem.mvi.BaseViewModel
 import com.meetpin.core.domain.repository.LocationRepository
 import com.meetpin.core.domain.repository.MeetPinRepository
 import com.meetpin.core.domain.usecase.CalculateEtaUseCase
 import com.meetpin.core.location.ArrivalDetector
+import com.meetpin.core.model.GeoPoint
 import com.meetpin.core.model.GroupStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -66,11 +66,11 @@ class LiveTrackingViewModel @Inject constructor(
             locationRepository.observeGroupLocations(groupId)
         ) { group, locations ->
             val pinLocation = group.pinLocation
-            val pinLatLng = LatLng(pinLocation.latitude, pinLocation.longitude)
+            val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
 
             val markers = group.participants.map { participant ->
                 val locationUpdate = locations.find { it.userId == participant.userId }
-                val position = locationUpdate?.let { LatLng(it.latitude, it.longitude) } ?: pinLatLng
+                val position = locationUpdate?.let { GeoPoint(it.latitude, it.longitude) } ?: pinLatLng
 
                 // 기존 마커 정보 가져와서 currentPosition 유지 (애니메이션 보간용)
                 val existingMarker = currentState.participantMarkers

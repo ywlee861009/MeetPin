@@ -1,30 +1,38 @@
 package com.meetpin.feature.tracking
 
-import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -36,51 +44,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.core.spring
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.animation.core.Spring
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.CameraPositionState
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerComposable
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.meetpin.core.location.LocationTrackingService
+import com.meetpin.core.map.LocalMapRenderer
+import com.meetpin.core.map.MapMarkerScope
+import com.meetpin.core.map.MeetPinMapUiSettings
+import com.meetpin.core.model.GeoPoint
 import kotlinx.coroutines.flow.collectLatest
 
 /**
  * 실시간 트래킹 지도 화면.
  *
  * - 참가자별 커스텀 아바타 마커
- * - 마커 위치 부드러운 보간 애니메이션 (LatLng Interpolation)
+ * - 마커 위치 부드러운 보간 애니메이션 (좌표 Interpolation)
  * - 약속 장소 핀 마커
+ *
+ * 지도 렌더링은 [LocalMapRenderer]로 주입된 벤더 구현에 위임한다.
  */
-@SuppressLint("MissingPermission")
 @Composable
 fun LiveTrackingScreen(
     groupId: String,
@@ -91,14 +79,14 @@ fun LiveTrackingScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val mapRenderer = LocalMapRenderer.current
     var mapSize by remember { mutableStateOf(IntSize.Zero) }
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(
-            state.pinLocation ?: LatLng(37.5666805, 126.9784147),
-            15f
-        )
-    }
+    val defaultPosition = remember { GeoPoint(37.5666805, 126.9784147) }
+    val cameraState = mapRenderer.rememberCameraState(
+        initialPosition = state.pinLocation ?: defaultPosition,
+        initialZoom = 15f,
+    )
 
     // 트래킹 시작
     LaunchedEffect(groupId) {
@@ -128,10 +116,7 @@ fun LiveTrackingScreen(
         viewModel.effect.collectLatest { effect ->
             when (effect) {
                 is LiveTrackingEffect.AnimateCameraToPosition -> {
-                    cameraPositionState.animate(
-                        CameraUpdateFactory.newLatLngZoom(effect.position, 16f),
-                        durationMs = 800
-                    )
+                    cameraState.animate(effect.position, zoom = 16f, durationMs = 800)
                 }
                 is LiveTrackingEffect.ShowArrivalCelebration -> {
                     snackbarHostState.showSnackbar("🎉 ${effect.participantName}님이 도착했습니다!")
@@ -152,9 +137,7 @@ fun LiveTrackingScreen(
     // 핀 위치로 초기 카메라 이동
     LaunchedEffect(state.pinLocation) {
         state.pinLocation?.let { pin ->
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(pin, 15f)
-            )
+            cameraState.animate(pin, zoom = 15f)
         }
     }
 
@@ -193,80 +176,85 @@ fun LiveTrackingScreen(
                             mapSize = coordinates.size
                         }
                 ) {
-                    GoogleMap(
+                    mapRenderer.Map(
                         modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = cameraPositionState,
-                        properties = MapProperties(isMyLocationEnabled = true),
-                        uiSettings = MapUiSettings(
+                        cameraState = cameraState,
+                        myLocationEnabled = true,
+                        uiSettings = MeetPinMapUiSettings(
                             zoomControlsEnabled = true,
-                            myLocationButtonEnabled = false
-                        )
+                            myLocationButtonEnabled = false,
+                        ),
                     ) {
                         // 약속 장소 핀 마커
                         state.pinLocation?.let { pinPos ->
                             Marker(
-                                state = MarkerState(position = pinPos),
+                                position = pinPos,
                                 title = state.pinPlaceName,
-                                snippet = "약속 장소"
+                                snippet = "약속 장소",
                             )
                         }
 
                         // 참가자 마커 (부드러운 보간 애니메이션)
                         state.participantMarkers.forEach { marker ->
-                            AnimatedParticipantMarker(
-                                participantMarker = marker
-                            )
+                            AnimatedParticipantMarker(participantMarker = marker)
                         }
                     }
 
                     // 오프스크린 말풍선 오버레이
-                    val projection = cameraPositionState.projection
-                    if (projection != null && mapSize.width > 0 && mapSize.height > 0) {
-                        state.participantMarkers.filter { !it.chatMessage.isNullOrEmpty() }.forEach { marker ->
-                            val point = projection.toScreenLocation(marker.targetPosition)
-                            val w = mapSize.width
-                            val h = mapSize.height
+                    if (mapSize.width > 0 && mapSize.height > 0) {
+                        state.participantMarkers
+                            .filter { !it.chatMessage.isNullOrEmpty() }
+                            .forEach { marker ->
+                                val screen = cameraState.toScreenOffset(marker.targetPosition)
+                                    ?: return@forEach
+                                val w = mapSize.width
+                                val h = mapSize.height
 
-                            // 화면 밖인지 체크 (패딩 여유 40px)
-                            if (point.x < -40 || point.y < -40 || point.x > w + 40 || point.y > h + 40) {
-                                val cx = w / 2f
-                                val cy = h / 2f
-                                val dx = point.x - cx
-                                val dy = point.y - cy
-
-                                val slope = if (dx != 0f) dy / dx else 1000000f
-
-                                val margin = 100f // 모서리 여백
-                                val xEdge = if (dx > 0) w.toFloat() - margin else margin
-                                var yIntersection = cy + slope * (xEdge - cx)
-
-                                var intersectX = xEdge
-                                var intersectY = yIntersection
-
-                                if (yIntersection < margin || yIntersection > h.toFloat() - margin) {
-                                    val yEdge = if (dy > 0) h.toFloat() - margin else margin
-                                    val xIntersection = cx + (yEdge - cy) / slope
-                                    intersectX = xIntersection
-                                    intersectY = yEdge
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .absoluteOffset(
-                                            x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
-                                            y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
-                                        )
-                                        .background(MaterialTheme.colorScheme.tertiaryContainer, RoundedCornerShape(12.dp))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                // 화면 밖인지 체크 (패딩 여유 40px)
+                                if (screen.x < -40 || screen.y < -40 ||
+                                    screen.x > w + 40 || screen.y > h + 40
                                 ) {
-                                    Text(
-                                        text = marker.chatMessage ?: "",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                                    )
+                                    val cx = w / 2f
+                                    val cy = h / 2f
+                                    val dx = screen.x - cx
+                                    val dy = screen.y - cy
+
+                                    val slope = if (dx != 0f) dy / dx else 1000000f
+
+                                    val margin = 100f // 모서리 여백
+                                    val xEdge = if (dx > 0) w.toFloat() - margin else margin
+                                    val yIntersection = cy + slope * (xEdge - cx)
+
+                                    var intersectX = xEdge
+                                    var intersectY = yIntersection
+
+                                    if (yIntersection < margin || yIntersection > h.toFloat() - margin) {
+                                        val yEdge = if (dy > 0) h.toFloat() - margin else margin
+                                        val xIntersection = cx + (yEdge - cy) / slope
+                                        intersectX = xIntersection
+                                        intersectY = yEdge
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .absoluteOffset(
+                                                x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
+                                                y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
+                                            )
+                                            .background(
+                                                MaterialTheme.colorScheme.tertiaryContainer,
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = marker.chatMessage ?: "",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        )
+                                    }
                                 }
                             }
-                        }
                     }
                 }
 
@@ -296,15 +284,12 @@ fun LiveTrackingScreen(
  * 참가자 마커 with 부드러운 위치 보간 애니메이션.
  *
  * targetPosition이 변경될 때 currentPosition에서 targetPosition으로
- * LatLng를 선형 보간(lerp)하여 마커가 부드럽게 이동한다.
+ * 좌표를 선형 보간(lerp)하여 마커가 부드럽게 이동한다.
  */
 @Composable
-fun AnimatedParticipantMarker(
+fun MapMarkerScope.AnimatedParticipantMarker(
     participantMarker: ParticipantMarker
 ) {
-    var animatedLat by remember { mutableStateOf(participantMarker.currentPosition.latitude) }
-    var animatedLng by remember { mutableStateOf(participantMarker.currentPosition.longitude) }
-
     val latAnimatable = remember { Animatable(participantMarker.currentPosition.latitude.toFloat()) }
     val lngAnimatable = remember { Animatable(participantMarker.currentPosition.longitude.toFloat()) }
 
@@ -323,27 +308,20 @@ fun AnimatedParticipantMarker(
         )
     }
 
-    animatedLat = latAnimatable.value.toDouble()
-    animatedLng = lngAnimatable.value.toDouble()
-
-    val markerState = rememberMarkerState(
-        key = participantMarker.participant.userId,
-        position = LatLng(animatedLat, animatedLng)
+    val animatedPosition = GeoPoint(
+        latitude = latAnimatable.value.toDouble(),
+        longitude = lngAnimatable.value.toDouble(),
     )
 
-    // 마커 위치 업데이트
-    LaunchedEffect(animatedLat, animatedLng) {
-        markerState.position = LatLng(animatedLat, animatedLng)
-    }
-
-    MarkerComposable(
-        state = markerState,
+    CustomMarker(
+        key = participantMarker.participant.userId,
+        position = animatedPosition,
         title = participantMarker.participant.nickname,
         snippet = if (participantMarker.participant.isArrived) {
             "✅ 도착"
         } else {
             "📍 ${formatDistance(participantMarker.distanceToPin)}"
-        }
+        },
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -438,7 +416,7 @@ fun formatDistance(distanceMeters: Float): String {
 @Composable
 fun ChatInputBar(onSendChat: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()

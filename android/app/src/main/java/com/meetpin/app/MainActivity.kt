@@ -5,11 +5,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meetpin.app.navigation.MeetPinNavHost
 import com.meetpin.app.navigation.MeetPinRoute
 import com.meetpin.app.ui.theme.MeetPinTheme
+import com.meetpin.core.map.LocalMapRenderer
+import com.meetpin.core.map.google.GoogleMapRenderer
 import com.meetpin.feature.lobby.DeepLinkHandler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,15 +46,19 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MeetPinTheme {
-                val inviteCode by pendingInviteCode.collectAsStateWithLifecycle()
-                MeetPinNavHost(
-                    startDestination = startInviteCode
-                        ?.let(MeetPinRoute::inviteAccept)
-                        ?: MeetPinRoute.CREATE_PIN,
-                    pendingInviteCode = inviteCode,
-                    onPendingInviteCodeHandled = { pendingInviteCode.value = null },
-                    onExitApp = { finish() }
-                )
+                // 지도 벤더 주입 지점. 카카오/네이버로 교체 시 이 한 줄만 바꾼다.
+                val mapRenderer = remember { GoogleMapRenderer() }
+                CompositionLocalProvider(LocalMapRenderer provides mapRenderer) {
+                    val inviteCode by pendingInviteCode.collectAsStateWithLifecycle()
+                    MeetPinNavHost(
+                        startDestination = startInviteCode
+                            ?.let(MeetPinRoute::inviteAccept)
+                            ?: MeetPinRoute.CREATE_PIN,
+                        pendingInviteCode = inviteCode,
+                        onPendingInviteCodeHandled = { pendingInviteCode.value = null },
+                        onExitApp = { finish() }
+                    )
+                }
             }
         }
     }

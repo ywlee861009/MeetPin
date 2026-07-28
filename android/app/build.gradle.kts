@@ -73,6 +73,9 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:location"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:map"))
+    // 지도 벤더 구현: 교체 시 이 줄과 앱 루트의 provider만 바꾼다.
+    implementation(project(":core:map-google"))
 
     // Feature Modules
     implementation(project(":feature:map"))
@@ -96,9 +99,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Google Maps & Location Services
-    implementation(libs.google.maps.compose)
-    implementation(libs.play.services.maps)
+    // Location Services (지도 SDK는 :core:map-google 로 격리됨)
     implementation(libs.play.services.location)
 
     testImplementation(libs.junit)

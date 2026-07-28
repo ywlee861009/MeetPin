@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:domain"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:map"))
 
     // Hilt DI
     implementation(libs.hilt.android)
@@ -45,8 +46,6 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Google Maps & Location Services
-    implementation(libs.google.maps.compose)
-    implementation(libs.play.services.maps)
+    // Location Services (지도 렌더링은 :core:map 인터페이스로 격리됨)
     implementation(libs.play.services.location)
 }

@@ -39,14 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.meetpin.core.map.LocalMapRenderer
+import com.meetpin.core.map.MeetPinMapUiSettings
+import com.meetpin.core.model.GeoPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -73,15 +68,14 @@ fun CreatePinScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val mapRenderer = LocalMapRenderer.current
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     // 서울 시청 기본 위치
-    val defaultPosition = LatLng(37.5666805, 126.9784147)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(defaultPosition, 15f)
-    }
+    val defaultPosition = remember { GeoPoint(37.5666805, 126.9784147) }
+    val cameraState = mapRenderer.rememberCameraState(defaultPosition, 15f)
 
     // Side Effect 수신
     LaunchedEffect(Unit) {
@@ -130,24 +124,22 @@ fun CreatePinScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            GoogleMap(
+            mapRenderer.Map(
                 modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    isMyLocationEnabled = hasLocationPermission
-                ),
-                uiSettings = MapUiSettings(
+                cameraState = cameraState,
+                myLocationEnabled = hasLocationPermission,
+                uiSettings = MeetPinMapUiSettings(
                     zoomControlsEnabled = true,
                     myLocationButtonEnabled = hasLocationPermission
                 ),
-                onMapClick = { latLng ->
-                    viewModel.processIntent(PinCreateIntent.SelectLocation(latLng))
+                onMapClick = { point ->
+                    viewModel.processIntent(PinCreateIntent.SelectLocation(point))
                 }
             ) {
                 // 선택된 위치에 핀 마커 표시
                 state.selectedLocation?.let { location ->
                     Marker(
-                        state = MarkerState(position = location),
+                        position = location,
                         title = state.title.ifBlank { "약속 장소" },
                         snippet = "여기서 만나요!"
                     )

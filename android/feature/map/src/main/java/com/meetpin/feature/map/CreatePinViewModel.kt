@@ -21,7 +21,7 @@ class CreatePinViewModel @Inject constructor(
     override fun processIntent(intent: PinCreateIntent) {
         when (intent) {
             is PinCreateIntent.SelectLocation -> {
-                updateState { copy(selectedLocation = intent.latLng, errorMessage = null) }
+                updateState { copy(selectedLocation = intent.point, errorMessage = null) }
             }
             is PinCreateIntent.UpdateTitle -> {
                 updateState { copy(title = intent.title) }

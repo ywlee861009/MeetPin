@@ -1,9 +1,9 @@
 package com.meetpin.feature.tracking
 
-import com.google.android.gms.maps.model.LatLng
 import com.meetpin.core.designsystem.mvi.UiEffect
 import com.meetpin.core.designsystem.mvi.UiIntent
 import com.meetpin.core.designsystem.mvi.UiState
+import com.meetpin.core.model.GeoPoint
 import com.meetpin.core.model.LocationUpdate
 import com.meetpin.core.model.Participant
 
@@ -12,8 +12,8 @@ import com.meetpin.core.model.Participant
  */
 data class ParticipantMarker(
     val participant: Participant,
-    val currentPosition: LatLng,
-    val targetPosition: LatLng, // 보간 애니메이션 목표 위치
+    val currentPosition: GeoPoint,
+    val targetPosition: GeoPoint, // 보간 애니메이션 목표 위치
     val distanceToPin: Float = 0f, // 약속 장소까지 거리 (미터)
     val etaMinutes: Int? = null, // 예상 소요시간 (분)
     val chatMessage: String? = null, // 현재 표시될 말풍선 메시지
@@ -26,7 +26,7 @@ data class ParticipantMarker(
 data class LiveTrackingState(
     val groupId: String = "",
     val groupTitle: String = "",
-    val pinLocation: LatLng? = null,
+    val pinLocation: GeoPoint? = null,
     val pinPlaceName: String = "",
     val participantMarkers: List<ParticipantMarker> = emptyList(),
     val myArrivedStatus: Boolean = false,
@@ -57,7 +57,7 @@ sealed interface LiveTrackingIntent : UiIntent {
  * 실시간 트래킹 화면의 일회성 부수효과.
  */
 sealed interface LiveTrackingEffect : UiEffect {
-    data class AnimateCameraToPosition(val position: LatLng) : LiveTrackingEffect
+    data class AnimateCameraToPosition(val position: GeoPoint) : LiveTrackingEffect
     data class ShowArrivalCelebration(val participantName: String) : LiveTrackingEffect
     data class NavigateToCompletion(val groupId: String) : LiveTrackingEffect
     data class ShowError(val message: String) : LiveTrackingEffect

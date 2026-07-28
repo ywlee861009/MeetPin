@@ -1,15 +1,15 @@
 package com.meetpin.feature.map
 
-import com.google.android.gms.maps.model.LatLng
 import com.meetpin.core.designsystem.mvi.UiEffect
 import com.meetpin.core.designsystem.mvi.UiIntent
 import com.meetpin.core.designsystem.mvi.UiState
+import com.meetpin.core.model.GeoPoint
 
 /**
  * 핀 생성 화면의 MVI 상태.
  */
 data class PinCreateState(
-    val selectedLocation: LatLng? = null,
+    val selectedLocation: GeoPoint? = null,
     val title: String = "",
     val scheduledDate: Long? = null,
     val scheduledTime: Long? = null,
@@ -35,7 +35,7 @@ data class PinCreateState(
  * 핀 생성 화면에서 발생하는 사용자 인텐트.
  */
 sealed interface PinCreateIntent : UiIntent {
-    data class SelectLocation(val latLng: LatLng) : PinCreateIntent
+    data class SelectLocation(val point: GeoPoint) : PinCreateIntent
     data class UpdateTitle(val title: String) : PinCreateIntent
     data class UpdateDate(val dateMillis: Long) : PinCreateIntent
     data class UpdateTime(val timeMillis: Long) : PinCreateIntent
