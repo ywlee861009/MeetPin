@@ -184,6 +184,7 @@ fun LiveTrackingScreen(
                             zoomControlsEnabled = true,
                             myLocationButtonEnabled = false,
                         ),
+                        onMapClick = null,
                     ) {
                         // 약속 장소 핀 마커
                         state.pinLocation?.let { pinPos ->

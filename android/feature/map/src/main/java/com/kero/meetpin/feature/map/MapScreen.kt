@@ -52,6 +52,7 @@ fun MapScreen(
                     compassEnabled = true,
                 ),
                 onMapClick = onMapClick,
+                content = {},
             )
         }
     }

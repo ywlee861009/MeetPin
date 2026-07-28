@@ -13,12 +13,16 @@ import com.kero.meetpin.core.model.GeoPoint
  * `@ComposableOpenTarget`: 이 컴포저블들은 인터페이스 멤버라 본문이 없어
  * applier-target 추론기가 스킴을 계산하지 못하고 ICE(Unknown file)를 낸다.
  * 열린(open) 타깃을 명시해 벤더별 applier에 무관하게 다형적임을 알린다.
+ *
+ * ⚠️ 파라미터 기본값(default)을 두지 않는다 — `@Composable` 인터페이스 멤버에 default를 주면
+ * 컴파일러가 만드는 `$default` 브릿지가 구현체 시그니처와 어긋나
+ * 런타임 `AbstractMethodError`를 낸다. 호출부에서 명시적으로 넘긴다.
  */
 interface MapMarkerScope {
     /** 기본 핀 마커 */
     @Composable
     @ComposableOpenTarget(-1)
-    fun Marker(position: GeoPoint, title: String? = null, snippet: String? = null)
+    fun Marker(position: GeoPoint, title: String?, snippet: String?)
 
     /**
      * 커스텀 컴포저블을 마커로 렌더링한다 (아바타 등).
@@ -29,8 +33,8 @@ interface MapMarkerScope {
     fun CustomMarker(
         key: String,
         position: GeoPoint,
-        title: String? = null,
-        snippet: String? = null,
+        title: String?,
+        snippet: String?,
         content: @Composable @ComposableOpenTarget(-1) () -> Unit,
     )
 }
@@ -46,15 +50,20 @@ interface MapRenderer {
     @Composable
     fun rememberCameraState(initialPosition: GeoPoint, initialZoom: Float): MapCameraState
 
-    /** 지도를 렌더링한다. */
+    /**
+     * 지도를 렌더링한다.
+     *
+     * 파라미터 기본값을 두지 않는다 (위 [MapMarkerScope]와 동일한 `AbstractMethodError` 이유).
+     * 호출부에서 onMapClick·content를 명시적으로 넘긴다.
+     */
     @Composable
     @ComposableOpenTarget(-1)
     fun Map(
-        modifier: Modifier = Modifier,
+        modifier: Modifier,
         cameraState: MapCameraState,
-        myLocationEnabled: Boolean = false,
-        uiSettings: MeetPinMapUiSettings = MeetPinMapUiSettings(),
-        onMapClick: ((GeoPoint) -> Unit)? = null,
-        content: @Composable @ComposableOpenTarget(-1) MapMarkerScope.() -> Unit = {},
+        myLocationEnabled: Boolean,
+        uiSettings: MeetPinMapUiSettings,
+        onMapClick: ((GeoPoint) -> Unit)?,
+        content: @Composable @ComposableOpenTarget(-1) MapMarkerScope.() -> Unit,
     )
 }
