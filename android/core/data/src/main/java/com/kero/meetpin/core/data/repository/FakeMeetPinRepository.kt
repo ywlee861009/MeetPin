@@ -35,17 +35,17 @@ class FakeMeetPinRepository @Inject constructor() : MeetPinRepository {
     private val sequence = AtomicInteger(0)
 
     override suspend fun createGroup(
-        title: String,
-        location: PinLocation,
-        scheduledAt: Long
+        location: PinLocation
     ): Result<MeetPinGroup> {
         val seq = sequence.incrementAndGet()
         val group = MeetPinGroup(
             id = "group-$seq",
-            title = title,
+            // 제목 입력을 받지 않는다. 장소명이 있으면 쓰고, 없으면 기본 문구.
+            title = location.placeName.ifBlank { "여기서 만나요" },
             hostId = HOST_USER_ID,
             pinLocation = location,
-            scheduledAt = scheduledAt,
+            // 일시 개념 제거 — 생성 시각을 그대로 둔다.
+            scheduledAt = System.currentTimeMillis(),
             status = GroupStatus.LOBBY,
             inviteCode = "MP%04d".format(seq),
             participants = listOf(

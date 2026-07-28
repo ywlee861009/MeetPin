@@ -36,8 +36,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ParticipantStatusSheet(
     participantMarkers: List<ParticipantMarker>,
-    arrivedCount: Int,
-    totalCount: Int,
+    participantCount: Int,
     onParticipantClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -58,7 +57,7 @@ fun ParticipantStatusSheet(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "✅ $arrivedCount / $totalCount 도착",
+                text = "👥 ${participantCount}명 공유 중",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold

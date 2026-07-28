@@ -1,5 +1,7 @@
 package com.kero.meetpin.feature.tracking
 
+import android.content.Context
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -9,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,9 +28,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -73,7 +79,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun LiveTrackingScreen(
     groupId: String,
     hasLocationPermission: Boolean = false,
-    onNavigateToCompletion: (String) -> Unit = {},
+    showDebugTools: Boolean = false,
     viewModel: LiveTrackingViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -118,11 +124,8 @@ fun LiveTrackingScreen(
                 is LiveTrackingEffect.AnimateCameraToPosition -> {
                     cameraState.animate(effect.position, zoom = 16f, durationMs = 800)
                 }
-                is LiveTrackingEffect.ShowArrivalCelebration -> {
-                    snackbarHostState.showSnackbar("🎉 ${effect.participantName}님이 도착했습니다!")
-                }
-                is LiveTrackingEffect.NavigateToCompletion -> {
-                    onNavigateToCompletion(effect.groupId)
+                is LiveTrackingEffect.ShowParticipantJoined -> {
+                    snackbarHostState.showSnackbar("🎉 ${effect.participantName}님이 참여했습니다!")
                 }
                 is LiveTrackingEffect.ShowError -> {
                     snackbarHostState.showSnackbar(effect.message)
@@ -167,6 +170,31 @@ fun LiveTrackingScreen(
                     }
                 )
 
+                // 초대 공유 / (디버그) 상대 수락 시뮬 액션
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { shareInviteLink(context, state.inviteCode) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("🔗 초대 링크 공유")
+                    }
+                    if (showDebugTools) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🧪 상대 수락")
+                        }
+                    }
+                }
+
                 // 지도 영역 (2/3)
                 Box(
                     modifier = Modifier
@@ -184,6 +212,9 @@ fun LiveTrackingScreen(
                             zoomControlsEnabled = true,
                             myLocationButtonEnabled = false,
                         ),
+                        // 지도 영역은 Scaffold innerPadding으로 이미 시스템 바 밖에 있으므로
+                        // 컨트롤에 추가 패딩이 필요 없다 (중복 인셋 방지).
+                        contentPadding = PaddingValues(0.dp),
                         onMapClick = null,
                     ) {
                         // 약속 장소 핀 마커
@@ -269,8 +300,7 @@ fun LiveTrackingScreen(
                 // 하단 참가자 상태 시트 (1/3)
                 ParticipantStatusSheet(
                     participantMarkers = state.participantMarkers,
-                    arrivedCount = state.arrivedCount,
-                    totalCount = state.totalCount,
+                    participantCount = state.participantCount,
                     onParticipantClick = { userId ->
                         viewModel.processIntent(LiveTrackingIntent.FocusOnParticipant(userId))
                     },
@@ -323,6 +353,10 @@ fun MapMarkerScope.AnimatedParticipantMarker(
         } else {
             "📍 ${formatDistance(participantMarker.distanceToPin)}"
         },
+        // 말풍선/프로필/도착 상태가 바뀌면 마커를 다시 그리도록 키에 포함한다.
+        contentKey = "${participantMarker.chatMessage}|" +
+            "${participantMarker.participant.isArrived}|" +
+            "${participantMarker.participant.profileImageUrl}",
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -412,6 +446,29 @@ fun formatDistance(distanceMeters: Float): String {
     } else {
         String.format("%.0fm", distanceMeters)
     }
+}
+
+/**
+ * Android 시스템 공유 팝업으로 초대 딥링크를 공유한다.
+ */
+private fun shareInviteLink(context: Context, inviteCode: String) {
+    val url = "https://meetpin.app/invite/$inviteCode"
+    val sendIntent = Intent().apply {
+        action = Intent.ACTION_SEND
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "MeetPin 약속 초대")
+        putExtra(
+            Intent.EXTRA_TEXT,
+            """
+            📍 MeetPin 약속 초대!
+
+            아래 링크를 눌러 지금 위치를 공유하세요:
+
+            $url
+            """.trimIndent()
+        )
+    }
+    context.startActivity(Intent.createChooser(sendIntent, "초대장 공유"))
 }
 
 @Composable

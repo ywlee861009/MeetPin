@@ -7,7 +7,7 @@ import com.kero.meetpin.core.domain.repository.MeetPinRepository
 import com.kero.meetpin.core.domain.usecase.CalculateEtaUseCase
 import com.kero.meetpin.core.location.ArrivalDetector
 import com.kero.meetpin.core.model.GeoPoint
-import com.kero.meetpin.core.model.GroupStatus
+import com.kero.meetpin.core.model.InviteStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -21,11 +21,11 @@ import javax.inject.Inject
  * 실시간 트래킹 MVI ViewModel.
  *
  * - 그룹 상태와 참가자 위치를 실시간 관찰
- * - ArrivalDetector로 도착 감지
+ * - 참가자가 초대를 수락하면 스낵바로 알리고 지도에 마커로 표시
  * - 마커 좌표 보간을 위한 currentPosition/targetPosition 갱신
- * - 전원 도착 시 완료 화면으로 전환
  *
- * ETA 계산은 :core:domain의 UseCase에 위임한다 (관심사 분리).
+ * 도착 감지·완료(자동 종료) 개념은 없다. 계속 위치 공유/채팅만 한다.
+ * ETA·거리 계산은 :core:domain / :core:location에 위임한다 (관심사 분리).
  */
 @HiltViewModel
 class LiveTrackingViewModel @Inject constructor(
@@ -40,18 +40,14 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.StartTracking -> startTracking(intent.groupId)
             is LiveTrackingIntent.StopLocationSharing -> stopLocationSharing()
             is LiveTrackingIntent.FocusOnParticipant -> focusOnParticipant(intent.userId)
-            is LiveTrackingIntent.DismissArrivalEffect -> {
-                updateState { copy(showArrivalEffect = false) }
-            }
             is LiveTrackingIntent.SendChat -> sendChat(intent.message)
+            is LiveTrackingIntent.SimulateGuestAccept -> simulateGuestAccept()
         }
     }
 
     /**
      * 트래킹 관찰 코루틴. 재진입 시 이전 것을 반드시 취소한다.
-     *
-     * 화면이 dispose 후 재구성되면 [LiveTrackingIntent.StartTracking]이 다시 들어온다.
-     * 이전 collector를 취소하지 않으면 도착 축하 이펙트와 완료 화면 이동이 중복 발행된다.
+     * (화면 재구성으로 StartTracking이 다시 들어와도 collector가 누적되지 않도록.)
      */
     private var trackingJob: Job? = null
 
@@ -68,7 +64,10 @@ class LiveTrackingViewModel @Inject constructor(
             val pinLocation = group.pinLocation
             val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
 
-            val markers = group.participants.map { participant ->
+            // 수락(ACCEPTED)한 참가자만 지도·목록에 표시한다. (대기 중인 초대는 숨김)
+            val markers = group.participants
+                .filter { it.inviteStatus == InviteStatus.ACCEPTED }
+                .map { participant ->
                 val locationUpdate = locations.find { it.userId == participant.userId }
                 val position = locationUpdate?.let { GeoPoint(it.latitude, it.longitude) } ?: pinLatLng
 
@@ -96,39 +95,29 @@ class LiveTrackingViewModel @Inject constructor(
                 )
             }
 
-            val isAllArrived = group.participants.isNotEmpty() &&
-                    group.participants.all { it.isArrived }
-
-            // 새 도착자 감지
-            val newlyArrived = markers.filter { marker ->
-                marker.participant.isArrived &&
-                        currentState.participantMarkers
-                            .find { it.participant.userId == marker.participant.userId }
-                            ?.participant?.isArrived != true
+            // 새로 수락(합류)한 참가자 감지: 호스트 제외, 직전에 ACCEPTED가 아니었던 참가자
+            val newlyJoined = group.participants.filter { participant ->
+                participant.userId != group.hostId &&
+                    participant.inviteStatus == InviteStatus.ACCEPTED &&
+                    currentState.participantMarkers
+                        .find { it.participant.userId == participant.userId }
+                        ?.participant?.inviteStatus != InviteStatus.ACCEPTED
             }
 
             updateState {
                 copy(
                     groupTitle = group.title,
+                    inviteCode = group.inviteCode,
                     pinLocation = pinLatLng,
                     pinPlaceName = pinLocation.placeName,
                     participantMarkers = markers,
-                    isAllArrived = isAllArrived,
-                    isLoading = false,
-                    isLocationSharingActive = group.status == GroupStatus.ACTIVE
+                    isLoading = false
                 )
             }
 
-            // 도착 축하 이펙트
-            newlyArrived.forEach { marker ->
-                sendEffect(LiveTrackingEffect.ShowArrivalCelebration(marker.participant.nickname))
-                updateState { copy(showArrivalEffect = true) }
-            }
-
-            // 전원 도착 시 완료 화면으로 이동
-            if (isAllArrived || group.status == GroupStatus.FINISHED) {
-                sendEffect(LiveTrackingEffect.StopLocationService)
-                sendEffect(LiveTrackingEffect.NavigateToCompletion(groupId))
+            // 합류 알림 스낵바
+            newlyJoined.forEach { participant ->
+                sendEffect(LiveTrackingEffect.ShowParticipantJoined(participant.nickname))
             }
         }
             .catch { error ->
@@ -141,7 +130,7 @@ class LiveTrackingViewModel @Inject constructor(
     private fun stopLocationSharing() {
         updateState { copy(isLocationSharingActive = false) }
         sendEffect(LiveTrackingEffect.StopLocationService)
-        
+
         // TODO: 서버에 종료 알림 (API 필요)
     }
 
@@ -149,6 +138,17 @@ class LiveTrackingViewModel @Inject constructor(
         val marker = currentState.participantMarkers.find { it.participant.userId == userId }
         marker?.let {
             sendEffect(LiveTrackingEffect.AnimateCameraToPosition(it.targetPosition))
+        }
+    }
+
+    /**
+     * [DEBUG 전용] 초대받은 상대가 수락한 상황을 단일 기기에서 재현한다.
+     * PENDING 참가자를 ACCEPTED로 바꾸면 observeGroup 흐름을 타고 합류 스낵바가 뜬다.
+     */
+    private fun simulateGuestAccept() {
+        val groupId = currentState.groupId.ifBlank { return }
+        viewModelScope.launch {
+            meetPinRepository.updateInviteStatus(groupId, InviteStatus.ACCEPTED)
         }
     }
 

@@ -11,7 +11,7 @@ import javax.inject.Inject
 /**
  * 핀 생성 MVI ViewModel.
  *
- * 지도 터치 → 핀 선택 → 약속 정보 입력 → 제출의 단방향 데이터 흐름을 관리.
+ * 지도 터치 → 핀 선택 → 바로 생성/공유의 단방향 흐름. 제목·일시 입력은 없다.
  */
 @HiltViewModel
 class CreatePinViewModel @Inject constructor(
@@ -22,15 +22,6 @@ class CreatePinViewModel @Inject constructor(
         when (intent) {
             is PinCreateIntent.SelectLocation -> {
                 updateState { copy(selectedLocation = intent.point, errorMessage = null) }
-            }
-            is PinCreateIntent.UpdateTitle -> {
-                updateState { copy(title = intent.title) }
-            }
-            is PinCreateIntent.UpdateDate -> {
-                updateState { copy(scheduledDate = intent.dateMillis) }
-            }
-            is PinCreateIntent.UpdateTime -> {
-                updateState { copy(scheduledTime = intent.timeMillis) }
             }
             is PinCreateIntent.SubmitPin -> {
                 submitPin()
@@ -45,38 +36,24 @@ class CreatePinViewModel @Inject constructor(
     }
 
     private fun submitPin() {
-        val state = currentState
-        if (!state.isFormValid) {
-            sendEffect(PinCreateEffect.ShowError("모든 필드를 입력해주세요."))
+        val location = currentState.selectedLocation ?: run {
+            sendEffect(PinCreateEffect.ShowError("먼저 지도를 눌러 위치를 선택해주세요."))
             return
         }
-
-        val location = state.selectedLocation ?: return
-        val scheduledAt = state.scheduledAt ?: return
 
         updateState { copy(isSubmitting = true) }
 
         viewModelScope.launch {
             val pinLocation = PinLocation(
-                placeName = state.title,
+                placeName = "",
                 latitude = location.latitude,
                 longitude = location.longitude
             )
 
-            meetPinRepository.createGroup(
-                title = state.title,
-                location = pinLocation,
-                scheduledAt = scheduledAt
-            ).fold(
+            meetPinRepository.createGroup(location = pinLocation).fold(
                 onSuccess = { group ->
                     updateState { copy(isSubmitting = false, createdGroupId = group.id) }
-                    sendEffect(
-                        PinCreateEffect.NavigateToInviteShare(
-                            groupId = group.id,
-                            groupTitle = group.title,
-                            inviteCode = group.inviteCode
-                        )
-                    )
+                    sendEffect(PinCreateEffect.NavigateToLiveTracking(group.id))
                 },
                 onFailure = { error ->
                     updateState { copy(isSubmitting = false, errorMessage = error.message) }

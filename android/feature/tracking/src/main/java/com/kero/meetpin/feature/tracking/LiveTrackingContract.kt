@@ -4,7 +4,6 @@ import com.kero.meetpin.core.designsystem.mvi.UiEffect
 import com.kero.meetpin.core.designsystem.mvi.UiIntent
 import com.kero.meetpin.core.designsystem.mvi.UiState
 import com.kero.meetpin.core.model.GeoPoint
-import com.kero.meetpin.core.model.LocationUpdate
 import com.kero.meetpin.core.model.Participant
 
 /**
@@ -22,23 +21,20 @@ data class ParticipantMarker(
 
 /**
  * 실시간 트래킹 화면의 MVI 상태.
+ *
+ * 도착 감지·완료 개념은 없다 — 참가자가 수락하면 지도에 표시되고 계속 공유/채팅만 한다.
  */
 data class LiveTrackingState(
     val groupId: String = "",
     val groupTitle: String = "",
+    val inviteCode: String = "", // 초대 링크 공유용
     val pinLocation: GeoPoint? = null,
     val pinPlaceName: String = "",
     val participantMarkers: List<ParticipantMarker> = emptyList(),
-    val myArrivedStatus: Boolean = false,
-    val isAllArrived: Boolean = false,
     val isLocationSharingActive: Boolean = true,
-    val showArrivalEffect: Boolean = false,
     val isLoading: Boolean = true
 ) : UiState {
-    val arrivedCount: Int
-        get() = participantMarkers.count { it.participant.isArrived }
-
-    val totalCount: Int
+    val participantCount: Int
         get() = participantMarkers.size
 }
 
@@ -49,8 +45,10 @@ sealed interface LiveTrackingIntent : UiIntent {
     data class StartTracking(val groupId: String) : LiveTrackingIntent
     data object StopLocationSharing : LiveTrackingIntent
     data class FocusOnParticipant(val userId: String) : LiveTrackingIntent
-    data object DismissArrivalEffect : LiveTrackingIntent
     data class SendChat(val message: String) : LiveTrackingIntent
+
+    /** [DEBUG 전용] 초대받은 상대가 수락한 상황을 단일 기기에서 시뮬레이션한다. */
+    data object SimulateGuestAccept : LiveTrackingIntent
 }
 
 /**
@@ -58,8 +56,10 @@ sealed interface LiveTrackingIntent : UiIntent {
  */
 sealed interface LiveTrackingEffect : UiEffect {
     data class AnimateCameraToPosition(val position: GeoPoint) : LiveTrackingEffect
-    data class ShowArrivalCelebration(val participantName: String) : LiveTrackingEffect
-    data class NavigateToCompletion(val groupId: String) : LiveTrackingEffect
+
+    /** 새 참가자가 초대를 수락해 합류했음을 알린다 (스낵바). */
+    data class ShowParticipantJoined(val participantName: String) : LiveTrackingEffect
+
     data class ShowError(val message: String) : LiveTrackingEffect
     data object StopLocationService : LiveTrackingEffect
 }
