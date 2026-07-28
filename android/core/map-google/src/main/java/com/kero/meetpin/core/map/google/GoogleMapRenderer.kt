@@ -1,5 +1,6 @@
 package com.kero.meetpin.core.map.google
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -84,6 +85,7 @@ class GoogleMapRenderer : MapRenderer {
         cameraState: MapCameraState,
         myLocationEnabled: Boolean,
         uiSettings: MeetPinMapUiSettings,
+        contentPadding: PaddingValues,
         onMapClick: ((GeoPoint) -> Unit)?,
         content: @Composable MapMarkerScope.() -> Unit,
     ) {
@@ -91,6 +93,7 @@ class GoogleMapRenderer : MapRenderer {
         GoogleMap(
             modifier = modifier,
             cameraPositionState = google.delegate,
+            contentPadding = contentPadding,
             properties = MapProperties(
                 isMyLocationEnabled = myLocationEnabled,
                 mapType = MapType.NORMAL,
@@ -131,11 +134,14 @@ private object GoogleMapMarkerScope : MapMarkerScope {
         position: GeoPoint,
         title: String?,
         snippet: String?,
+        contentKey: Any,
         content: @Composable () -> Unit,
     ) {
         val markerState = rememberMarkerState(key = key, position = position.toLatLng())
         markerState.position = position.toLatLng()
+        // contentKey가 바뀔 때만 마커 비트맵을 다시 굽는다. (말풍선 등장/소멸 반영)
         MarkerComposable(
+            contentKey,
             state = markerState,
             title = title ?: "",
             snippet = snippet ?: "",

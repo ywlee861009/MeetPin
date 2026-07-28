@@ -1,5 +1,6 @@
 package com.kero.meetpin.core.map
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposableOpenTarget
 import androidx.compose.ui.Modifier
@@ -27,6 +28,10 @@ interface MapMarkerScope {
     /**
      * 커스텀 컴포저블을 마커로 렌더링한다 (아바타 등).
      * @param key 마커 식별 키 (위치 보간 애니메이션의 안정적 갱신용)
+     * @param contentKey [content]가 만들어내는 그림이 바뀔 때마다 값이 달라져야 하는 키.
+     *   일부 지도 SDK는 마커 컴포저블을 비트맵으로 한 번만 굽기 때문에, 이 값이 바뀌어야
+     *   마커를 다시 그린다. (예: 말풍선 텍스트, 도착 여부.) 위치는 넣지 말 것 — 매 프레임
+     *   재래스터화되어 비싸다.
      */
     @Composable
     @ComposableOpenTarget(-1)
@@ -35,6 +40,7 @@ interface MapMarkerScope {
         position: GeoPoint,
         title: String?,
         snippet: String?,
+        contentKey: Any,
         content: @Composable @ComposableOpenTarget(-1) () -> Unit,
     )
 }
@@ -54,7 +60,10 @@ interface MapRenderer {
      * 지도를 렌더링한다.
      *
      * 파라미터 기본값을 두지 않는다 (위 [MapMarkerScope]와 동일한 `AbstractMethodError` 이유).
-     * 호출부에서 onMapClick·content를 명시적으로 넘긴다.
+     * 호출부에서 모든 인자를 명시적으로 넘긴다.
+     *
+     * @param contentPadding 지도 SDK가 그리는 네이티브 컨트롤(현위치·확대/축소 버튼, 로고 등)을
+     *   안전 영역 안으로 밀어넣기 위한 패딩. 시스템 바 인셋을 넘긴다.
      */
     @Composable
     @ComposableOpenTarget(-1)
@@ -63,6 +72,7 @@ interface MapRenderer {
         cameraState: MapCameraState,
         myLocationEnabled: Boolean,
         uiSettings: MeetPinMapUiSettings,
+        contentPadding: PaddingValues,
         onMapClick: ((GeoPoint) -> Unit)?,
         content: @Composable @ComposableOpenTarget(-1) MapMarkerScope.() -> Unit,
     )

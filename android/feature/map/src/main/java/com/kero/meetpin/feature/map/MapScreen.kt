@@ -1,6 +1,7 @@
 package com.kero.meetpin.feature.map
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.MeetPinMapUiSettings
 import com.kero.meetpin.core.model.GeoPoint
@@ -51,6 +53,8 @@ fun MapScreen(
                     myLocationButtonEnabled = true,
                     compassEnabled = true,
                 ),
+                // 지도 영역은 Scaffold innerPadding으로 이미 시스템 바 밖에 있다.
+                contentPadding = PaddingValues(0.dp),
                 onMapClick = onMapClick,
                 content = {},
             )

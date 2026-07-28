@@ -29,4 +29,6 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
+    // MapRenderer.Map의 contentPadding(PaddingValues)용
+    implementation("androidx.compose.foundation:foundation")
 }
