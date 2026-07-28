@@ -29,6 +29,8 @@ include(":core:designsystem")
 include(":core:network")
 include(":core:data")
 include(":core:location")
+include(":core:map")
+include(":core:map-google")
 
 // Feature modules
 include(":feature:map")
