@@ -1,7 +1,14 @@
 package com.kero.meetpin.app.navigation
 
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -36,6 +43,21 @@ fun MeetPinNavHost(
     onExitApp: () -> Unit = {}
 ) {
     val hasLocationPermission = rememberLocationPermissionGranted()
+
+    // 뒤로가기 최종 폴백: 두 번 눌러 종료.
+    // Compose back 우선순위(늦게 등록된 핸들러 우선)에 따라, 팝업/시트의 BackHandler가
+    // 1순위, NavHost의 pop이 2순위, 이 핸들러가 최종 폴백으로 동작한다.
+    val context = LocalContext.current
+    var lastBackPressedAt by remember { mutableStateOf(0L) }
+    BackHandler {
+        val now = System.currentTimeMillis()
+        if (now - lastBackPressedAt < BACK_EXIT_WINDOW_MS) {
+            onExitApp()
+        } else {
+            lastBackPressedAt = now
+            Toast.makeText(context, "한 번 더 누르면 종료됩니다", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // warm start 딥링크: onNewIntent로 도착한 초대 코드를 초대 수락 화면으로 넘긴다.
     LaunchedEffect(pendingInviteCode) {
@@ -108,3 +130,6 @@ private fun NavBackStackEntry.requireArg(key: String): String =
     checkNotNull(arguments?.getString(key)) {
         "라우트 인자 '$key'가 없습니다. MeetPinRoute의 패턴과 팩토리 함수를 확인하세요."
     }
+
+/** 두 번 눌러 종료 판정 시간 창. */
+private const val BACK_EXIT_WINDOW_MS = 2000L
