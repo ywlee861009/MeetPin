@@ -6,7 +6,6 @@ import com.meetpin.core.designsystem.mvi.BaseViewModel
 import com.meetpin.core.domain.repository.LocationRepository
 import com.meetpin.core.domain.repository.MeetPinRepository
 import com.meetpin.core.domain.usecase.CalculateEtaUseCase
-import com.meetpin.core.domain.usecase.CalculateLatePenaltyUseCase
 import com.meetpin.core.location.ArrivalDetector
 import com.meetpin.core.model.GroupStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -27,15 +25,14 @@ import javax.inject.Inject
  * - 마커 좌표 보간을 위한 currentPosition/targetPosition 갱신
  * - 전원 도착 시 완료 화면으로 전환
  *
- * ETA·지각 벌칙금 계산은 :core:domain의 UseCase에 위임한다 (관심사 분리).
+ * ETA 계산은 :core:domain의 UseCase에 위임한다 (관심사 분리).
  */
 @HiltViewModel
 class LiveTrackingViewModel @Inject constructor(
     private val meetPinRepository: MeetPinRepository,
     private val locationRepository: LocationRepository,
     private val arrivalDetector: ArrivalDetector,
-    private val calculateEta: CalculateEtaUseCase,
-    private val calculateLatePenalty: CalculateLatePenaltyUseCase
+    private val calculateEta: CalculateEtaUseCase
 ) : BaseViewModel<LiveTrackingState, LiveTrackingIntent, LiveTrackingEffect>(LiveTrackingState()) {
 
     override fun processIntent(intent: LiveTrackingIntent) {
@@ -63,12 +60,11 @@ class LiveTrackingViewModel @Inject constructor(
 
         trackingJob?.cancel()
 
-        // 그룹 상태 + 위치 업데이트 + 지각 시간 갱신용 타이머를 동시 관찰
+        // 그룹 상태 + 위치 업데이트를 동시 관찰
         trackingJob = combine(
             meetPinRepository.observeGroup(groupId),
-            locationRepository.observeGroupLocations(groupId),
-            minuteTicker()
-        ) { group, locations, currentTime ->
+            locationRepository.observeGroupLocations(groupId)
+        ) { group, locations ->
             val pinLocation = group.pinLocation
             val pinLatLng = LatLng(pinLocation.latitude, pinLocation.longitude)
 
@@ -89,13 +85,6 @@ class LiveTrackingViewModel @Inject constructor(
 
                 val etaMinutes = calculateEta(distanceMeters = distance)
 
-                val latePenalty = calculateLatePenalty(
-                    scheduledAt = group.scheduledAt,
-                    now = currentTime,
-                    isArrived = participant.isArrived,
-                    penaltyPerMinute = group.penaltyPerMinute
-                )
-
                 ParticipantMarker(
                     participant = participant,
                     currentPosition = existingMarker?.targetPosition ?: position,
@@ -103,9 +92,7 @@ class LiveTrackingViewModel @Inject constructor(
                     distanceToPin = distance,
                     etaMinutes = etaMinutes,
                     chatMessage = existingMarker?.chatMessage,
-                    chatTimestamp = existingMarker?.chatTimestamp,
-                    lateMinutes = latePenalty.lateMinutes,
-                    currentPenalty = latePenalty.amount
+                    chatTimestamp = existingMarker?.chatTimestamp
                 )
             }
 
@@ -151,20 +138,6 @@ class LiveTrackingViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * 지각 시간 갱신용 타이머.
-     *
-     * 지각 표시는 분 단위이므로 1분 주기로만 방출한다.
-     * (더 짧은 주기로 방출하면 참가자 마커 리스트 전체가 불필요하게 재생성되고
-     *  Compose 리컴포지션도 매 tick마다 유발된다.)
-     */
-    private fun minuteTicker() = flow {
-        while (true) {
-            emit(System.currentTimeMillis())
-            delay(TICK_INTERVAL_MS)
-        }
-    }
-
     private fun stopLocationSharing() {
         updateState { copy(isLocationSharingActive = false) }
         sendEffect(LiveTrackingEffect.StopLocationService)
@@ -207,9 +180,6 @@ class LiveTrackingViewModel @Inject constructor(
     }
 
     private companion object {
-        /** 지각 시간 갱신 주기 (분 단위 표시이므로 1분) */
-        const val TICK_INTERVAL_MS = 60_000L
-
         /** 말풍선 표시 유지 시간 */
         const val CHAT_BUBBLE_DURATION_MS = 4_000L
     }
