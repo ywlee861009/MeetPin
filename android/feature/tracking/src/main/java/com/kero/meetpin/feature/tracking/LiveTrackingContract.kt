@@ -49,6 +49,9 @@ sealed interface LiveTrackingIntent : UiIntent {
 
     /** [DEBUG 전용] 초대받은 상대가 수락한 상황을 단일 기기에서 시뮬레이션한다. */
     data object SimulateGuestAccept : LiveTrackingIntent
+
+    /** [DEBUG 전용] 친구가 채팅을 보낸 상황을 시뮬레이션한다. */
+    data object SimulateGuestChat : LiveTrackingIntent
 }
 
 /**

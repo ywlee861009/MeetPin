@@ -170,20 +170,25 @@ fun LiveTrackingScreen(
                     }
                 )
 
-                // 초대 공유 / (디버그) 상대 수락 시뮬 액션
-                Row(
+                // 초대 공유
+                Button(
+                    onClick = { shareInviteLink(context, state.inviteCode) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Button(
-                        onClick = { shareInviteLink(context, state.inviteCode) },
-                        modifier = Modifier.weight(1f)
+                    Text("🔗 초대 링크 공유")
+                }
+
+                // (디버그) 상대 수락 / 상대 채팅 시뮬
+                if (showDebugTools) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("🔗 초대 링크 공유")
-                    }
-                    if (showDebugTools) {
                         OutlinedButton(
                             onClick = {
                                 viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
@@ -191,6 +196,14 @@ fun LiveTrackingScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("🧪 상대 수락")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.processIntent(LiveTrackingIntent.SimulateGuestChat)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🧪 상대 채팅")
                         }
                     }
                 }

@@ -14,6 +14,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,6 +44,7 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.FocusOnParticipant -> focusOnParticipant(intent.userId)
             is LiveTrackingIntent.SendChat -> sendChat(intent.message)
             is LiveTrackingIntent.SimulateGuestAccept -> simulateGuestAccept()
+            is LiveTrackingIntent.SimulateGuestChat -> simulateGuestChat()
         }
     }
 
@@ -56,11 +59,16 @@ class LiveTrackingViewModel @Inject constructor(
 
         trackingJob?.cancel()
 
-        // 그룹 상태 + 위치 업데이트를 동시 관찰
+        // 그룹 상태 + 내 실시간 GPS를 동시 관찰.
+        // 내 위치는 항상 실제 GPS를 쓰되, 아직 안 들어왔거나 권한이 없으면 핀으로 폴백한다.
         trackingJob = combine(
             meetPinRepository.observeGroup(groupId),
-            locationRepository.observeGroupLocations(groupId)
-        ) { group, locations ->
+            locationRepository.getCurrentLocation()
+                .map<_, GeoPoint?> { GeoPoint(it.latitude, it.longitude) }
+                .onStart { emit(null) }
+                .catch { emit(null) }
+        ) { group, myLocation ->
+            currentHostId = group.hostId
             val pinLocation = group.pinLocation
             val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
 
@@ -68,19 +76,21 @@ class LiveTrackingViewModel @Inject constructor(
             val markers = group.participants
                 .filter { it.inviteStatus == InviteStatus.ACCEPTED }
                 .map { participant ->
-                val locationUpdate = locations.find { it.userId == participant.userId }
-                val position = locationUpdate?.let { GeoPoint(it.latitude, it.longitude) } ?: pinLatLng
+                val isHost = participant.userId == group.hostId
+                // 호스트(나) = 실제 GPS(없으면 핀), 친구 = 테스트용 광화문 좌표.
+                val position = when {
+                    isHost -> myLocation ?: pinLatLng
+                    else -> FRIEND_TEST_LOCATION
+                }
 
                 // 기존 마커 정보 가져와서 currentPosition 유지 (애니메이션 보간용)
                 val existingMarker = currentState.participantMarkers
                     .find { it.participant.userId == participant.userId }
 
-                val distance = locationUpdate?.let {
-                    arrivalDetector.calculateDistance(
-                        it.latitude, it.longitude,
-                        pinLocation.latitude, pinLocation.longitude
-                    )
-                } ?: 0f
+                val distance = arrivalDetector.calculateDistance(
+                    position.latitude, position.longitude,
+                    pinLocation.latitude, pinLocation.longitude
+                )
 
                 val etaMinutes = calculateEta(distanceMeters = distance)
 
@@ -152,6 +162,32 @@ class LiveTrackingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * [DEBUG 전용] 친구가 채팅을 보낸 상황을 재현한다.
+     * 호스트가 아닌 첫 참가자(친구) 마커에 말풍선을 띄운다.
+     */
+    private fun simulateGuestChat() {
+        val friendId = currentState.participantMarkers
+            .map { it.participant }
+            .firstOrNull { it.userId != currentHostId }
+            ?.userId ?: return
+
+        val updated = currentState.participantMarkers.map { marker ->
+            if (marker.participant.userId == friendId) {
+                marker.copy(
+                    chatMessage = FRIEND_TEST_CHAT,
+                    chatTimestamp = System.currentTimeMillis()
+                )
+            } else {
+                marker
+            }
+        }
+        updateState { copy(participantMarkers = updated) }
+    }
+
+    /** 합류/채팅 시뮬레이션에서 '친구'를 식별하기 위한 호스트 id 캐시. */
+    private var currentHostId: String = ""
+
     private fun sendChat(message: String) {
         // TODO: 실제 앱에서는 서버로 채팅을 전송하고, 서버에서 받아서 업데이트해야 합니다.
         // 현재는 로컬에서 내(첫 번째) 마커에 바로 표시되도록 모의(Mock) 구현합니다.
@@ -182,5 +218,11 @@ class LiveTrackingViewModel @Inject constructor(
     private companion object {
         /** 말풍선 표시 유지 시간 */
         const val CHAT_BUBBLE_DURATION_MS = 4_000L
+
+        /** [테스트] 친구 위치 — 광화문 광장 부근. */
+        val FRIEND_TEST_LOCATION = GeoPoint(37.5759, 126.9769)
+
+        /** [테스트] 친구가 보낸 채팅 문구. */
+        const val FRIEND_TEST_CHAT = "거의 다 왔어! 🏃"
     }
 }
