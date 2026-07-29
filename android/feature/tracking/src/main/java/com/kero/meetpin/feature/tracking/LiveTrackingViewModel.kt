@@ -26,7 +26,8 @@ import javax.inject.Inject
  * - 참가자가 초대를 수락하면 스낵바로 알리고 지도에 마커로 표시
  * - 마커 좌표 보간을 위한 currentPosition/targetPosition 갱신
  *
- * 도착 감지·완료(자동 종료) 개념은 없다. 계속 위치 공유/채팅만 한다.
+ * 도착 감지는 하되(반경 진입 시 도착 시각화만 켠다), 완료 화면·자동 종료 개념은 없다.
+ * 도착 후에도 계속 위치 공유/채팅을 이어간다.
  * ETA·거리 계산은 :core:domain / :core:location에 위임한다 (관심사 분리).
  */
 @HiltViewModel
@@ -54,10 +55,18 @@ class LiveTrackingViewModel @Inject constructor(
      */
     private var trackingJob: Job? = null
 
+    /**
+     * 이미 도착 보고를 보낸 참가자 userId 집합.
+     * 위치 emission이 반경 안에서 여러 번 들어와도 [MeetPinRepository.reportArrival]가
+     * 중복 호출되지 않도록 막는다. (리포지토리도 멱등이지만 불필요한 호출 자체를 줄인다.)
+     */
+    private val reportedArrivals = mutableSetOf<String>()
+
     private fun startTracking(groupId: String) {
         updateState { copy(groupId = groupId, isLoading = true) }
 
         trackingJob?.cancel()
+        reportedArrivals.clear()
 
         // 그룹 상태 + 내 실시간 GPS를 동시 관찰.
         // 내 위치는 항상 실제 GPS를 쓰되, 아직 안 들어왔거나 권한이 없으면 핀으로 폴백한다.
@@ -102,6 +111,21 @@ class LiveTrackingViewModel @Inject constructor(
                     position.latitude, position.longitude,
                     pinLocation.latitude, pinLocation.longitude
                 )
+
+                // 도착 감지: 반경 내 진입 시 리포지토리에 보고해 도착 시각화(체크마크·라벨)를 켠다.
+                // 호스트는 실제 GPS가 들어온 경우에만 판정한다. GPS 미수신 시 position이 핀으로
+                // 폴백(distance=0)되어 즉시 도착으로 오판되는 것을 막기 위함이다.
+                val hasRealPosition = if (isHost) myLocation != null else true
+                if (hasRealPosition &&
+                    !participant.isArrived &&
+                    participant.userId !in reportedArrivals &&
+                    arrivalDetector.isWithinRadius(position.latitude, position.longitude, pinLocation)
+                ) {
+                    reportedArrivals += participant.userId
+                    viewModelScope.launch {
+                        meetPinRepository.reportArrival(groupId, participant.userId)
+                    }
+                }
 
                 val etaMinutes = calculateEta(distanceMeters = distance)
 

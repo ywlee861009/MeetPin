@@ -22,7 +22,8 @@ data class ParticipantMarker(
 /**
  * 실시간 트래킹 화면의 MVI 상태.
  *
- * 도착 감지·완료 개념은 없다 — 참가자가 수락하면 지도에 표시되고 계속 공유/채팅만 한다.
+ * 참가자가 수락하면 지도에 표시되고 계속 공유/채팅한다.
+ * 도착 감지 시 참가자의 도착 상태(체크마크·"도착 완료!" 라벨)만 켜지며, 완료 화면·자동 종료는 없다.
  */
 data class LiveTrackingState(
     val groupId: String = "",

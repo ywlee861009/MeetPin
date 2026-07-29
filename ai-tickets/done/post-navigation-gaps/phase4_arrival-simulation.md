@@ -1,5 +1,33 @@
 # Phase 4: 도착 상태 시뮬레이션 수단 확보 (완료 화면 도달)
 
+> ## ✅ 완료 (2026-07-29) — 축소 범위로 착수
+>
+> **코드 대조 결과 이 티켓의 원래 목표(완료 화면 도달)는 무효였다.** 작성 이후 라이브
+> 트래킹이 재설계되어 `CompletionScreen`·`NavigateToCompletion`·`ShowArrivalCelebration`·
+> `isAllArrived`→`FINISHED` 흐름이 **전부 제거**됐다(ViewModel/Contract 주석이 "완료·자동
+> 종료 개념 없음"을 명시). `GroupStatus.FINISHED`는 enum에만 남고 참조처가 없다.
+>
+> 반면 `Participant.isArrived` 시각화(아바타 체크마크·"도착 완료!" 라벨·마커 스니펫)는
+> 3곳에서 살아있으나 `isArrived`를 켜는 경로가 없어 **죽은 UI**였다. 그래서 완료 화면은
+> 복원하지 않고(재설계 존중), **도착 시각화를 살리는 부분만** 구현했다.
+>
+> **구현한 것**
+> - `MeetPinRepository.reportArrival(groupId, userId)` 추가 (멱등)
+> - `FakeMeetPinRepository`: 해당 참가자 `isArrived=true`, `arrivedAt` 기록. **`GroupStatus`
+>   전이는 하지 않음**(완료 개념 제거 존중).
+> - `LiveTrackingViewModel`: 마커 매핑에서 `ArrivalDetector.isWithinRadius` 판정 시
+>   `reportArrival` 호출. 호스트는 실제 GPS 수신 시에만 판정(핀 폴백 오탐 방지),
+>   `reportedArrivals` 집합으로 중복 호출 차단.
+>
+> **의도적으로 안 한 것**: `CompletionScreen`/네비게이션/축하 이펙트(재설계로 제거된 개념),
+> 도착 스낵바(승인 범위 밖 — 필요 시 후속). `local-e2e-demo-mode/phase4`가 이 `reportArrival`을
+> 재사용한다.
+>
+> **검증**: `:core:domain`/`:core:data`/`:feature:tracking` 컴파일 + `DesignSystemGuardrailTest`
+> 그린. 실기기 도착 재현(`adb emu geo fix`) 검증은 미실시.
+>
+> _아래는 원래 작성된 티켓 원문(전제가 일부 무효)._
+
 ## 🎯 목표
 
 `CompletionScreen`을 실제로 도달·검증할 수 있게 만든다.

@@ -19,7 +19,10 @@
 | 1 | `phase1_maps-api-key.md` | `MAPS_API_KEY` 미설정으로 지도가 회색 | 차단 | ✅ 완료 (done) |
 | 2 | ~~`phase2_bottomsheet-navbar-inset.md`~~ | ~~핀 생성 CTA 버튼이 내비게이션 바에 가림~~ | 높음 | ❌ 폐지 (아래 참고) |
 | 3 | `phase3_applinks-assetlinks.md` | https 초대 링크가 앱이 아니라 브라우저로 열림 | 높음 | ⏳ 대기 (웹서버 의존, 보류) |
-| 4 | `phase4_arrival-simulation.md` | 도착 상태를 만들 수단이 없어 완료 화면 도달 불가 | 중간 | ⏳ 대기 |
+| 4 | `phase4_arrival-simulation.md` | 도착 시각화(체크마크·"도착 완료!" 라벨) 활성화 | 중간 | ✅ 완료 (done, 축소 범위) |
+
+> phase4는 축소 범위로 완료. 완료 화면·네비게이션은 재설계로 이미 제거되어 복원하지 않고,
+> `reportArrival` + `ArrivalDetector` 연결로 도착 시각화만 살렸다. 상세는 phase4 파일 상단 참고.
 
 ### ❌ phase2 폐지 사유 (2026-07-29)
 

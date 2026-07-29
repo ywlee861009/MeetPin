@@ -107,6 +107,31 @@ class FakeMeetPinRepository @Inject constructor() : MeetPinRepository {
         return Result.success(Unit)
     }
 
+    /**
+     * 참가자의 도착 상태를 켠다. 이미 도착(`isArrived=true`)이면 아무것도 바꾸지 않는다(멱등).
+     * `observeGroup` 흐름을 통해 UI(아바타 체크마크·"도착 완료!" 라벨)로 반영된다.
+     *
+     * 완료 화면/자동 종료 개념은 이 앱에서 제거되었으므로 여기서 [GroupStatus] 전이는 하지 않는다.
+     */
+    override suspend fun reportArrival(groupId: String, userId: String): Result<Unit> {
+        val group = groups.value[groupId]
+            ?: return Result.failure(NoSuchElementException("그룹을 찾을 수 없습니다: $groupId"))
+
+        val alreadyArrived = group.participants.any { it.userId == userId && it.isArrived }
+        if (alreadyArrived) return Result.success(Unit)
+
+        val updatedParticipants = group.participants.map { participant ->
+            if (participant.userId == userId) {
+                participant.copy(isArrived = true, arrivedAt = System.currentTimeMillis())
+            } else {
+                participant
+            }
+        }
+
+        groups.update { current -> current + (groupId to group.copy(participants = updatedParticipants)) }
+        return Result.success(Unit)
+    }
+
     override fun observeGroup(groupId: String): Flow<MeetPinGroup> =
         groups
             .map { it[groupId] }
