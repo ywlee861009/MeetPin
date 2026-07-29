@@ -1,0 +1,607 @@
+<title>MeetPin 디자인 시스템 — 모던 미니멀</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    /* neutrals — cool bias toward the map ground */
+    --ground: #ffffff;
+    --surface: #fbfbfc;
+    --surface-2: #f3f4f7;
+    --border: #e6e8ee;
+    --ink: #15171e;
+    --text: #2a2d36;
+    --muted: #71767f;
+
+    /* single accent = the live pin / "you are here" */
+    --accent: #f0454f;
+    --accent-ink: #ffffff;
+    --accent-weak: #fdeced;
+
+    /* semantic — NOT the accent */
+    --arrived: #12b886;
+    --arrived-weak: #e5f7f0;
+    --info: #2f80ed;
+
+    /* map */
+    --map-land: #eaecef;
+    --map-road: #ffffff;
+    --map-park: #dcebdc;
+    --map-water: #d7e5f2;
+
+    --shadow-sm: 0 1px 2px rgba(20,23,30,.06);
+    --shadow: 0 1px 2px rgba(20,23,30,.06), 0 10px 30px -14px rgba(20,23,30,.22);
+    --shadow-lg: 0 2px 4px rgba(20,23,30,.06), 0 24px 48px -20px rgba(20,23,30,.28);
+
+    --r-sm: 8px;
+    --r: 14px;
+    --r-lg: 20px;
+    --r-pill: 999px;
+
+    --maxw: 1080px;
+    --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+            "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", "Roboto Mono", ui-monospace, "Menlo", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0e1014;
+      --surface: #15181f;
+      --surface-2: #1c2029;
+      --border: #272c36;
+      --ink: #f2f4f8;
+      --text: #d6d9e0;
+      --muted: #8a909c;
+      --accent: #ff5a63;
+      --accent-ink: #1a0d0e;
+      --accent-weak: #2a1a1d;
+      --arrived: #21c997;
+      --arrived-weak: #10241d;
+      --info: #4c9aff;
+      --map-land: #10141b;
+      --map-road: #1c222b;
+      --map-park: #142219;
+      --map-water: #11202e;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.7);
+      --shadow-lg: 0 2px 4px rgba(0,0,0,.5), 0 28px 56px -22px rgba(0,0,0,.8);
+    }
+  }
+  /* explicit toggle wins over the media query, both directions */
+  :root[data-theme="light"] {
+    --ground:#fff;--surface:#fbfbfc;--surface-2:#f3f4f7;--border:#e6e8ee;--ink:#15171e;--text:#2a2d36;--muted:#71767f;
+    --accent:#f0454f;--accent-ink:#fff;--accent-weak:#fdeced;--arrived:#12b886;--arrived-weak:#e5f7f0;--info:#2f80ed;
+    --map-land:#eaecef;--map-road:#fff;--map-park:#dcebdc;--map-water:#d7e5f2;
+    --shadow-sm:0 1px 2px rgba(20,23,30,.06);--shadow:0 1px 2px rgba(20,23,30,.06),0 10px 30px -14px rgba(20,23,30,.22);--shadow-lg:0 2px 4px rgba(20,23,30,.06),0 24px 48px -20px rgba(20,23,30,.28);
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e1014;--surface:#15181f;--surface-2:#1c2029;--border:#272c36;--ink:#f2f4f8;--text:#d6d9e0;--muted:#8a909c;
+    --accent:#ff5a63;--accent-ink:#1a0d0e;--accent-weak:#2a1a1d;--arrived:#21c997;--arrived-weak:#10241d;--info:#4c9aff;
+    --map-land:#10141b;--map-road:#1c222b;--map-park:#142219;--map-water:#11202e;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);--shadow-lg:0 2px 4px rgba(0,0,0,.5),0 28px 56px -22px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--ground);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  section { padding: 72px 0; border-top: 1px solid var(--border); }
+  h1, h2, h3 { color: var(--ink); text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  .eyebrow {
+    font-size: .75rem; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 14px;
+  }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .sec-head { margin-bottom: 40px; max-width: 60ch; }
+  .sec-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
+  .sec-head p { color: var(--muted); margin-top: 10px; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--ground) 82%, transparent);
+    backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .wrap { display: flex; align-items: center; gap: 14px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+  .brand-pin { width: 22px; height: 22px; }
+  .brand .ver { font: 600 .7rem/1 var(--mono); color: var(--muted); border: 1px solid var(--border); padding: 4px 7px; border-radius: var(--r-pill); }
+  .spacer { flex: 1; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    font: 600 .8rem/1 var(--font); color: var(--text);
+    background: var(--surface-2); border: 1px solid var(--border);
+    padding: 8px 13px; border-radius: var(--r-pill);
+  }
+  .toggle:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 92px 0 84px; border-top: none; }
+  .hero h1 { font-size: clamp(2.3rem, 5vw, 3.35rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.02; }
+  .hero .lede { color: var(--muted); font-size: 1.12rem; margin-top: 20px; max-width: 42ch; }
+  .hero-meta { display: flex; gap: 26px; margin-top: 34px; }
+  .hero-meta .k { font: 700 1.4rem/1 var(--font); color: var(--ink); letter-spacing: -.02em; }
+  .hero-meta .v { font-size: .78rem; color: var(--muted); margin-top: 5px; }
+
+  /* live map card */
+  .mapcard {
+    position: relative; border-radius: var(--r-lg); overflow: hidden;
+    border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    aspect-ratio: 4 / 3.4;
+  }
+  .map {
+    position: absolute; inset: 0;
+    background-color: var(--map-land);
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 46px, var(--map-road) 46px 52px),
+      repeating-linear-gradient(90deg, transparent 0 62px, var(--map-road) 62px 68px),
+      repeating-linear-gradient(38deg, transparent 0 120px, var(--map-road) 120px 126px);
+    background-position: -8px -8px, 0 0, -20px 0;
+  }
+  .map .park { position: absolute; border-radius: 10px; background: var(--map-park); }
+  .map .water { position: absolute; background: var(--map-water); }
+  .p1 { width: 34%; height: 28%; left: 6%; top: 10%; }
+  .p2 { width: 22%; height: 24%; right: 9%; bottom: 12%; }
+  .w1 { width: 40%; height: 120%; right: -12%; top: -10%; transform: rotate(20deg); border-radius: 40px; opacity: .9; }
+
+  .marker { position: absolute; transform: translate(-50%, -100%); }
+  .avatar {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 38px; height: 38px; border-radius: var(--r-pill);
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: .95rem;
+    border: 3px solid var(--ground); box-shadow: var(--shadow);
+  }
+  .destpin { left: 50%; top: 46%; z-index: 3; }
+  .destpin svg { width: 40px; height: 48px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.28)); }
+
+  /* pulsing "you are here" live dot */
+  .live { left: 32%; top: 70%; z-index: 4; }
+  .live .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid var(--ground); box-shadow: var(--shadow); position: relative; }
+  .live .dot::after {
+    content: ""; position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid var(--accent); animation: ping 2.4s cubic-bezier(0,.2,.8,1) infinite;
+  }
+  @keyframes ping { 0% { transform: scale(.6); opacity: .9; } 70%, 100% { transform: scale(2.6); opacity: 0; } }
+
+  .bubble {
+    position: absolute; left: 68%; top: 30%; transform: translate(-50%, -100%); z-index: 5;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 14px 14px 14px 4px; font-size: .82rem; font-weight: 600;
+    box-shadow: var(--shadow); white-space: nowrap;
+  }
+  .liveband {
+    position: absolute; left: 12px; right: 12px; top: 12px; z-index: 6;
+    display: flex; align-items: center; gap: 9px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(8px); border: 1px solid var(--border);
+    border-radius: var(--r-pill); padding: 8px 14px; box-shadow: var(--shadow-sm);
+    font-size: .82rem; font-weight: 700; color: var(--ink);
+  }
+  .blip { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent); animation: blip 1.8s ease-out infinite; }
+  @keyframes blip { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent); } 70%,100% { box-shadow: 0 0 0 8px transparent; } }
+
+  /* ---------- color tokens ---------- */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+  .sw { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+  .sw .chip { height: 76px; }
+  .sw .meta { padding: 11px 13px; }
+  .sw .name { font-weight: 700; color: var(--ink); font-size: .88rem; }
+  .sw .hex { font: 500 .78rem/1.4 var(--mono); color: var(--muted); margin-top: 3px; }
+  .ramp { display: grid; grid-template-columns: repeat(6, 1fr); border-radius: var(--r); overflow: hidden; border: 1px solid var(--border); margin-top: 20px; }
+  .ramp div { height: 56px; display: flex; align-items: flex-end; padding: 7px; font: 500 .68rem/1 var(--mono); }
+
+  /* ---------- type scale ---------- */
+  .type-row { display: flex; align-items: baseline; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .type-row:last-child { border-bottom: none; }
+  .type-tag { font: 600 .72rem/1 var(--mono); color: var(--muted); width: 128px; flex: none; letter-spacing: .02em; }
+  .t-display { font-size: 2.6rem; font-weight: 800; letter-spacing: -.045em; color: var(--ink); }
+  .t-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .t-head { font-size: 1.12rem; font-weight: 700; color: var(--ink); }
+  .t-body { font-size: 1rem; font-weight: 400; color: var(--text); }
+  .t-label { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .t-data { font: 600 1.05rem/1 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* ---------- components ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px; box-shadow: var(--shadow-sm); }
+  .card > .lab { font: 700 .7rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+
+  .btn { font: 700 .95rem/1 var(--font); border-radius: var(--r-pill); padding: 13px 20px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 8px; transition: transform .08s ease, filter .15s ease; }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-secondary { background: transparent; color: var(--ink); border-color: var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { color: var(--ink); background: var(--surface-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font: 700 .78rem/1 var(--font); padding: 7px 12px; border-radius: var(--r-pill); }
+  .pill.moving { background: var(--accent-weak); color: var(--accent); }
+  .pill.arrived { background: var(--arrived-weak); color: var(--arrived); }
+  .pill.sharing { background: var(--surface-2); color: var(--ink); }
+  .pill .d { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .codebox { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--r); padding: 14px 16px; }
+  .codebox .code { font: 800 1.35rem/1 var(--mono); letter-spacing: .22em; color: var(--ink); }
+
+  .chat-me, .chat-friend { max-width: 80%; padding: 10px 14px; font-size: .92rem; box-shadow: var(--shadow-sm); }
+  .chat-me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-radius: 16px 16px 4px 16px; }
+  .chat-friend { align-self: flex-start; background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 16px 16px 16px 4px; }
+
+  .prow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .prow:last-child { border-bottom: none; }
+  .prow .av { width: 40px; height: 40px; border-radius: var(--r-pill); display: grid; place-items: center; color: #fff; font-weight: 800; flex: none; }
+  .prow .nm { font-weight: 700; color: var(--ink); }
+  .prow .sub { font-size: .8rem; color: var(--muted); }
+  .prow .dist { margin-left: auto; font: 700 .92rem/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .toast { display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--ground); border-radius: var(--r); padding: 13px 16px; font-weight: 600; font-size: .9rem; box-shadow: var(--shadow); }
+
+  /* ---------- phone mockups ---------- */
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; justify-items: center; }
+  .phone-wrap { max-width: 320px; width: 100%; }
+  .phone {
+    position: relative; width: 100%; aspect-ratio: 9 / 19.2;
+    background: var(--ground); border: 1px solid var(--border);
+    border-radius: 42px; padding: 12px; box-shadow: var(--shadow-lg);
+  }
+  .phone-inner { position: relative; width: 100%; height: 100%; border-radius: 30px; overflow: hidden; background: var(--surface-2); display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 34%; height: 22px; background: var(--ink); border-radius: var(--r-pill); z-index: 40; opacity: .92; }
+  .phone-cap { text-align: center; margin-top: 16px; font-weight: 700; color: var(--ink); font-size: .95rem; }
+  .phone-cap span { display: block; font: 500 .78rem/1.4 var(--font); color: var(--muted); margin-top: 3px; }
+
+  .ph-map { position: relative; flex: 1; overflow: hidden; }
+  .ph-topbar {
+    position: absolute; left: 12px; right: 12px; top: 44px; z-index: 20;
+    background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(8px);
+    border: 1px solid var(--border); border-radius: var(--r-pill);
+    padding: 11px 15px; font-size: .82rem; font-weight: 700; color: var(--ink);
+    display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sm);
+  }
+  .ph-topbar.right { justify-content: space-between; }
+  .ph-stopbtn { font: 700 .74rem/1 var(--font); color: var(--accent); background: var(--accent-weak); padding: 6px 10px; border-radius: var(--r-pill); }
+
+  .centerpin { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-100%); z-index: 15; }
+  .centerpin svg { width: 44px; height: 52px; filter: drop-shadow(0 8px 10px rgba(0,0,0,.3)); }
+  .centerpin .shadow { position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%); width: 16px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.25); }
+
+  .sheet {
+    background: var(--surface); border-top: 1px solid var(--border);
+    border-radius: 22px 22px 0 0; padding: 8px 18px 20px; z-index: 25;
+    box-shadow: 0 -8px 24px -16px rgba(0,0,0,.35); position: relative;
+  }
+  .grab { width: 36px; height: 4px; border-radius: var(--r-pill); background: var(--border); margin: 6px auto 14px; }
+  .sheet h4 { margin: 0; color: var(--ink); font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; }
+  .sheet .coord { font: 500 .74rem/1.4 var(--mono); color: var(--muted); margin: 5px 0 16px; }
+  .btn-block { width: 100%; justify-content: center; }
+
+  .ph-avatar { position: absolute; transform: translate(-50%,-50%); width: 34px; height: 34px; border-radius: var(--r-pill); display: grid; place-items: center; color: #fff; font-weight: 800; font-size: .82rem; border: 3px solid var(--ground); box-shadow: var(--shadow); z-index: 14; }
+  .ph-bubble { position: absolute; transform: translate(-50%,-100%); background: var(--surface); border: 1px solid var(--border); color: var(--ink); font-size: .72rem; font-weight: 600; padding: 6px 9px; border-radius: 10px 10px 10px 3px; box-shadow: var(--shadow); white-space: nowrap; z-index: 16; }
+  .ph-destpin { position: absolute; transform: translate(-50%,-100%); z-index: 13; }
+  .ph-destpin svg { width: 30px; height: 36px; filter: drop-shadow(0 5px 6px rgba(0,0,0,.3)); }
+
+  .track-sheet { background: var(--surface); border-top: 1px solid var(--border); border-radius: 22px 22px 0 0; padding: 8px 16px 14px; z-index: 25; box-shadow: 0 -8px 24px -16px rgba(0,0,0,.35); }
+  .track-sheet .prow { padding: 9px 0; }
+  .track-sheet .av { width: 34px; height: 34px; font-size: .82rem; }
+  .chatbar { display: flex; align-items: center; gap: 8px; margin-top: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 7px 8px 7px 15px; }
+  .chatbar .ph { flex: 1; font-size: .8rem; color: var(--muted); }
+  .chatbar .send { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; flex: none; }
+
+  footer { padding: 44px 0 80px; color: var(--muted); font-size: .88rem; }
+  footer code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 6px; color: var(--text); }
+
+  @media (max-width: 780px) {
+    .hero { grid-template-columns: 1fr; gap: 36px; padding: 56px 0; }
+    section { padding: 56px 0; }
+    .type-tag { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live .dot::after, .blip { animation: none; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand">
+      <svg class="brand-pin" viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C5.7 0 0.7 5 0.7 11.3 0.7 19.7 12 28 12 28s11.3-8.3 11.3-16.7C23.3 5 18.3 0 12 0z" fill="var(--accent)"/><circle cx="12" cy="11" r="4.3" fill="var(--ground)"/></svg>
+      MeetPin
+      <span class="ver">DS v0.1</span>
+    </span>
+    <span class="spacer"></span>
+    <button class="toggle" id="themeBtn" aria-label="테마 전환">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+      <span id="themeLabel">테마</span>
+    </button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <p class="eyebrow">모던 미니멀 · 디자인 시스템</p>
+      <h1>지도 위에서<br>가장 조용한 순간까지.</h1>
+      <p class="lede">핀 하나, 강조색 하나. 지도가 주인공이 되도록 UI는 뒤로 물러서고, 살아있는 위치만 붉게 맥동합니다.</p>
+      <div class="hero-meta">
+        <div><div class="k mono">1</div><div class="v">강조색 (핀 레드)</div></div>
+        <div><div class="k mono">2</div><div class="v">서체 · 데이터는 모노</div></div>
+        <div><div class="k mono">AA</div><div class="v">명암 대비 준수</div></div>
+      </div>
+    </div>
+
+    <div class="mapcard" role="img" aria-label="실시간 위치 공유 지도 미리보기">
+      <div class="map">
+        <div class="park p1"></div>
+        <div class="park p2"></div>
+        <div class="water w1"></div>
+      </div>
+      <div class="liveband"><span class="blip"></span> 실시간 공유 중 · 3명</div>
+
+      <div class="marker destpin">
+        <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C5.7 0 0.7 5 0.7 11.3 0.7 19.7 12 28 12 28s11.3-8.3 11.3-16.7C23.3 5 18.3 0 12 0z" fill="var(--ink)"/><circle cx="12" cy="11" r="4.3" fill="var(--ground)"/></svg>
+      </div>
+
+      <div class="avatar" style="left:66%; top:30%; background:#7c5cff;">지</div>
+      <div class="bubble">거의 다 왔어! 🏃</div>
+
+      <div class="avatar" style="left:50%; top:47%; background:var(--arrived);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>
+
+      <div class="marker live"><div class="dot"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COLOR -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Foundations</p>
+      <h2>색 — 강조색은 오직 하나</h2>
+      <p>핀 레드는 "여기 / 지금 살아있는 위치"에만 씁니다. 초록은 강조색이 아니라 <b>도착</b> 상태 전용 시맨틱 컬러예요. 뉴트럴에는 지도 바탕과 어울리도록 미세한 푸른기를 넣었습니다.</p>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--accent)"></div><div class="meta"><div class="name">Accent · Pin</div><div class="hex">#F0454F</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--accent-weak)"></div><div class="meta"><div class="name">Accent Weak</div><div class="hex">#FDECED</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--arrived)"></div><div class="meta"><div class="name">Arrived (semantic)</div><div class="hex">#12B886</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta"><div class="name">Ink</div><div class="hex">#15171E</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--muted)"></div><div class="meta"><div class="name">Muted</div><div class="hex">#71767F</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface-2); border-bottom:1px solid var(--border)"></div><div class="meta"><div class="name">Surface 2</div><div class="hex">#F3F4F7</div></div></div>
+    </div>
+    <div class="ramp" aria-hidden="true">
+      <div style="background:var(--map-land)"></div>
+      <div style="background:var(--map-park)"></div>
+      <div style="background:var(--map-water)"></div>
+      <div style="background:var(--surface)"></div>
+      <div style="background:var(--surface-2)"></div>
+      <div style="background:var(--border)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TYPE -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Foundations</p>
+      <h2>서체 — 읽기는 고딕, 데이터는 모노</h2>
+      <p>본문은 Pretendard 계열 한글 고딕. 거리·좌표·초대코드·시간처럼 정렬돼야 하는 값은 <span class="mono">tabular</span> 모노스페이스로 — 지도 앱의 좌표 감성을 서체에 담습니다.</p>
+    </div>
+    <div>
+      <div class="type-row"><span class="type-tag">Display / 800</span><span class="t-display">지금 만나요</span></div>
+      <div class="type-row"><span class="type-tag">Title / 800</span><span class="t-title">약속 장소를 지도 중앙에</span></div>
+      <div class="type-row"><span class="type-tag">Head / 700</span><span class="t-head">참가자 3명 · 이동 중</span></div>
+      <div class="type-row"><span class="type-tag">Body / 400</span><span class="t-body">아래 링크를 눌러 지금 위치를 공유하세요.</span></div>
+      <div class="type-row"><span class="type-tag">Label / 700</span><span class="t-label">실시간 공유 중</span></div>
+      <div class="type-row"><span class="type-tag">Data / Mono</span><span class="t-data">320 m · ETA 4분 · 37.5759, 126.9769</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Components</p>
+      <h2>컴포넌트</h2>
+      <p>모든 조각은 토큰만 바라봅니다. 라운드는 살짝, 그림자는 옅게, 상태는 색과 형태 양쪽으로 드러냅니다.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <span class="lab">Buttons</span>
+        <div class="col">
+          <div class="row"><button class="btn btn-primary">여기로 약속 만들기</button></div>
+          <div class="row">
+            <button class="btn btn-secondary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a1 1 0 001 1h14a1 1 0 001-1v-8"/><path d="M16 6l-4-4-4 4M12 2v14"/></svg>
+              초대 링크 공유
+            </button>
+            <button class="btn btn-ghost">공유 중지</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="lab">Status pills</span>
+        <div class="row">
+          <span class="pill moving"><span class="d"></span>이동 중</span>
+          <span class="pill arrived"><span class="d"></span>도착</span>
+          <span class="pill sharing"><span class="blip" style="background:var(--accent)"></span>공유 중</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="lab">Invite code</span>
+        <div class="codebox">
+          <span class="code">7K4-QP9</span>
+          <button class="btn btn-secondary" style="padding:9px 14px; font-size:.82rem;">복사</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="lab">Chat bubbles</span>
+        <div class="col">
+          <div class="chat-friend">어디쯤이야?</div>
+          <div class="chat-me">거의 다 왔어! 🏃</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="lab">Participant rows</span>
+        <div class="prow">
+          <span class="av" style="background:var(--accent)">나</span>
+          <div><div class="nm">나</div><div class="sub">이동 중</div></div>
+          <span class="dist">320 m</span>
+        </div>
+        <div class="prow">
+          <span class="av" style="background:var(--arrived)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </span>
+          <div><div class="nm">지훈</div><div class="sub" style="color:var(--arrived)">도착함</div></div>
+          <span class="dist">0 m</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="lab">Toast</span>
+        <div class="col">
+          <div class="toast">🎉 지훈님이 참여했습니다!</div>
+          <div class="toast" style="background:var(--accent); color:var(--accent-ink);">위치 권한이 없어 위치를 공유할 수 없어요</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENS -->
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow">Screens</p>
+      <h2>실제 화면에 얹으면</h2>
+      <p>토큰과 컴포넌트를 MeetPin의 두 핵심 화면에 적용한 모습입니다.</p>
+    </div>
+    <div class="phones">
+
+      <!-- CreatePin -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-inner">
+            <div class="ph-map">
+              <div class="map">
+                <div class="park p1"></div><div class="park p2"></div><div class="water w1"></div>
+              </div>
+              <div class="ph-topbar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" stroke-linecap="round"/></svg>
+                약속 장소를 지도 중앙에 맞춰요
+              </div>
+              <div class="centerpin">
+                <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C5.7 0 0.7 5 0.7 11.3 0.7 19.7 12 28 12 28s11.3-8.3 11.3-16.7C23.3 5 18.3 0 12 0z" fill="var(--accent)"/><circle cx="12" cy="11" r="4.3" fill="var(--ground)"/></svg>
+                <div class="shadow"></div>
+              </div>
+            </div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <h4>광화문광장</h4>
+              <div class="coord">37.5759, 126.9769</div>
+              <button class="btn btn-primary btn-block">여기로 약속 만들기</button>
+            </div>
+          </div>
+        </div>
+        <div class="phone-cap">핀 만들기<span>지도 중앙 고정 핀으로 장소 선택</span></div>
+      </div>
+
+      <!-- LiveTracking -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="phone-inner">
+            <div class="ph-map">
+              <div class="map">
+                <div class="park p1"></div><div class="park p2"></div><div class="water w1"></div>
+              </div>
+              <div class="ph-topbar right">
+                <span style="display:flex;align-items:center;gap:8px;"><span class="blip"></span>실시간 공유 중</span>
+                <span class="ph-stopbtn">중지</span>
+              </div>
+
+              <div class="ph-destpin" style="left:50%; top:44%;">
+                <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 0C5.7 0 0.7 5 0.7 11.3 0.7 19.7 12 28 12 28s11.3-8.3 11.3-16.7C23.3 5 18.3 0 12 0z" fill="var(--ink)"/><circle cx="12" cy="11" r="4.3" fill="var(--ground)"/></svg>
+              </div>
+
+              <div class="ph-bubble" style="left:70%; top:30%;">거의 다 왔어! 🏃</div>
+              <div class="ph-avatar" style="left:68%; top:36%; background:#7c5cff;">지</div>
+
+              <div class="ph-avatar" style="left:50%; top:44%; background:var(--arrived);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+
+              <div class="ph-avatar" style="left:34%; top:66%; background:var(--accent);">나</div>
+            </div>
+            <div class="track-sheet">
+              <div class="grab"></div>
+              <div class="prow">
+                <span class="av" style="background:var(--accent)">나</span>
+                <div><div class="nm">나</div><div class="sub">이동 중</div></div>
+                <span class="dist">320 m</span>
+              </div>
+              <div class="prow">
+                <span class="av" style="background:var(--arrived)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <div><div class="nm">지훈</div><div class="sub" style="color:var(--arrived)">도착함</div></div>
+                <span class="dist">0 m</span>
+              </div>
+              <div class="chatbar">
+                <span class="ph">채팅을 입력하세요…</span>
+                <span class="send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-cap">실시간 트래킹<span>아바타 마커 · 말풍선 · 참가자 시트</span></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    이 시안이 확정되면 색·타이포·라운드 값을 <code>:core:designsystem</code> 모듈의 <code>MeetPinTheme</code> / <code>colorScheme</code> 토큰으로 이식하고, 여기 나온 컴포넌트(버튼·필·시트·말풍선·참가자 행)를 공용 Composable로 추출합니다. 우상단 버튼으로 라이트/다크를 전환해 두 테마를 모두 확인하실 수 있습니다.
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById('themeBtn');
+    var label = document.getElementById('themeLabel');
+    function current() {
+      var set = document.documentElement.getAttribute('data-theme');
+      if (set) return set;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function apply(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      label.textContent = t === 'dark' ? '라이트' : '다크';
+    }
+    apply(current());
+    btn.addEventListener('click', function () {
+      apply(current() === 'dark' ? 'light' : 'dark');
+    });
+  })();
+</script>

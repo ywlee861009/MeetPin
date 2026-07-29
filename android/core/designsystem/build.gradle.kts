@@ -38,4 +38,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // 라이브 도트 맥동 애니메이션(rememberInfiniteTransition)
+    implementation(libs.androidx.compose.animation)
+
+    // @Preview 렌더링(개발용)
+    debugImplementation(libs.androidx.ui.tooling)
 }

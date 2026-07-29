@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kero.meetpin.app.navigation.MeetPinNavHost
 import com.kero.meetpin.app.navigation.MeetPinRoute
-import com.kero.meetpin.app.ui.theme.MeetPinTheme
+import com.kero.meetpin.core.designsystem.theme.MeetPinTheme
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.google.GoogleMapRenderer
 import com.kero.meetpin.feature.lobby.DeepLinkHandler
