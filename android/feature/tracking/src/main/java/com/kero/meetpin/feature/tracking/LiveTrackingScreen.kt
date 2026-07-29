@@ -174,29 +174,45 @@ fun LiveTrackingScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
-                // (디버그) 상대 수락 / 상대 채팅 시뮬
+                // (디버그) 상대 수락 / 친구별 채팅 시뮬
                 if (showDebugTools) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                             .padding(bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         MeetPinSecondaryButton(
                             text = "🧪 상대 수락",
                             onClick = {
                                 viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        MeetPinSecondaryButton(
-                            text = "🧪 상대 채팅",
-                            onClick = {
-                                viewModel.processIntent(LiveTrackingIntent.SimulateGuestChat)
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            MeetPinSecondaryButton(
+                                text = "🧪 광화문 친구",
+                                onClick = {
+                                    viewModel.processIntent(
+                                        LiveTrackingIntent.SimulateGuestChat(friendIndex = 0)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            MeetPinSecondaryButton(
+                                text = "🧪 강남 친구",
+                                onClick = {
+                                    viewModel.processIntent(
+                                        LiveTrackingIntent.SimulateGuestChat(friendIndex = 1)
+                                    )
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 

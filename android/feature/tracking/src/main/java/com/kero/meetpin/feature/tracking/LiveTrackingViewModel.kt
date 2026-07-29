@@ -44,7 +44,7 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.FocusOnParticipant -> focusOnParticipant(intent.userId)
             is LiveTrackingIntent.SendChat -> sendChat(intent.message)
             is LiveTrackingIntent.SimulateGuestAccept -> simulateGuestAccept()
-            is LiveTrackingIntent.SimulateGuestChat -> simulateGuestChat()
+            is LiveTrackingIntent.SimulateGuestChat -> simulateGuestChat(intent.friendIndex)
         }
     }
 
@@ -175,52 +175,59 @@ class LiveTrackingViewModel @Inject constructor(
 
     /**
      * [DEBUG 전용] 친구가 채팅을 보낸 상황을 재현한다.
-     * 호스트가 아닌 첫 참가자(친구) 마커에 말풍선을 띄운다.
+     * [friendIndex]로 비호스트(친구) 순번을 지정해 해당 마커에 캔드 메시지를 순환 표시한다.
      */
-    private fun simulateGuestChat() {
-        val friendId = currentState.participantMarkers
+    private fun simulateGuestChat(friendIndex: Int) {
+        val friend = currentState.participantMarkers
             .map { it.participant }
-            .firstOrNull { it.userId != currentHostId }
-            ?.userId ?: return
+            .filter { it.userId != currentHostId }
+            .getOrNull(friendIndex) ?: return
 
-        val updated = currentState.participantMarkers.map { marker ->
-            if (marker.participant.userId == friendId) {
-                marker.copy(
-                    chatMessage = FRIEND_TEST_CHAT,
-                    chatTimestamp = System.currentTimeMillis()
-                )
-            } else {
-                marker
-            }
-        }
-        updateState { copy(participantMarkers = updated) }
+        val message = CANNED_GUEST_CHATS[chatRotation % CANNED_GUEST_CHATS.size]
+        chatRotation++
+        showChatBubble(friend.userId, message)
     }
 
     /** 합류/채팅 시뮬레이션에서 '친구'를 식별하기 위한 호스트 id 캐시. */
     private var currentHostId: String = ""
 
+    /** 시뮬 채팅에서 캔드 메시지를 돌려쓰기 위한 회전 인덱스. */
+    private var chatRotation: Int = 0
+
     private fun sendChat(message: String) {
         // TODO: 실제 앱에서는 서버로 채팅을 전송하고, 서버에서 받아서 업데이트해야 합니다.
-        // 현재는 로컬에서 내(첫 번째) 마커에 바로 표시되도록 모의(Mock) 구현합니다.
-        val updatedMarkers = currentState.participantMarkers.mapIndexed { index, marker ->
-            if (index == 0) { // 임시로 첫 번째 유저를 본인으로 가정
-                marker.copy(
-                    chatMessage = message,
-                    chatTimestamp = System.currentTimeMillis()
-                )
-            } else {
-                marker
-            }
-        }
-        updateState { copy(participantMarkers = updatedMarkers) }
+        // 현재는 로컬에서 내(호스트) 마커에 바로 표시되도록 모의(Mock) 구현합니다.
+        val myUserId = currentHostId.ifBlank {
+            currentState.participantMarkers.firstOrNull()?.participant?.userId
+        } ?: return
+        showChatBubble(myUserId, message)
+    }
 
-        // 말풍선 자동 닫기
+    /**
+     * 지정한 참가자 마커에 말풍선을 띄우고 [CHAT_BUBBLE_DURATION_MS] 후 자동으로 지운다.
+     * 자동 닫힘은 그 사이 새 말풍선(다른 timestamp)으로 덮이지 않은 경우에만 동작한다.
+     */
+    private fun showChatBubble(userId: String, message: String) {
+        val timestamp = System.currentTimeMillis()
+        updateState {
+            copy(participantMarkers = participantMarkers.map { marker ->
+                if (marker.participant.userId == userId) {
+                    marker.copy(chatMessage = message, chatTimestamp = timestamp)
+                } else {
+                    marker
+                }
+            })
+        }
+
         viewModelScope.launch {
             delay(CHAT_BUBBLE_DURATION_MS)
             updateState {
-                copy(participantMarkers = currentState.participantMarkers.mapIndexed { index, marker ->
-                    if (index == 0) marker.copy(chatMessage = null, chatTimestamp = null)
-                    else marker
+                copy(participantMarkers = participantMarkers.map { marker ->
+                    if (marker.participant.userId == userId && marker.chatTimestamp == timestamp) {
+                        marker.copy(chatMessage = null, chatTimestamp = null)
+                    } else {
+                        marker
+                    }
                 })
             }
         }
@@ -243,7 +250,12 @@ class LiveTrackingViewModel @Inject constructor(
             GeoPoint(37.4979, 127.0276)  // 강남역
         )
 
-        /** [테스트] 친구가 보낸 채팅 문구. */
-        const val FRIEND_TEST_CHAT = "거의 다 왔어! 🏃"
+        /** [데모] 시뮬 채팅에서 돌려쓰는 친구 캔드 메시지. */
+        val CANNED_GUEST_CHATS = listOf(
+            "거의 다 왔어! 🏃",
+            "5분 뒤 도착~",
+            "커피 사갈까? ☕",
+            "먼저 자리 잡을게"
+        )
     }
 }

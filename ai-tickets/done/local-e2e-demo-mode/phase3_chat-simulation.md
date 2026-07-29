@@ -33,7 +33,17 @@
 - 새 버튼은 반드시 DS 컴포넌트 사용(가드레일).
 
 ## 검증
-- [ ] `:feature:tracking`, `:app` 컴파일, `DesignSystemGuardrailTest` 그린
-- [ ] 광화문/강남 친구 버튼을 각각 눌러 **해당 마커**에 말풍선 표시 확인
-- [ ] 말풍선이 `CHAT_BUBBLE_DURATION_MS`(4초) 후 자동으로 사라짐
-- [ ] 친구가 화면 밖일 때 offscreen 말풍선으로도 표시됨
+- [x] `:feature:tracking`, `:app` 컴파일 (EXIT=0), `DesignSystemGuardrailTest` 그린 (EXIT=0)
+- [ ] 광화문/강남 친구 버튼을 각각 눌러 **해당 마커**에 말풍선 표시 확인 — (런타임, E2E 패스)
+- [ ] 말풍선이 `CHAT_BUBBLE_DURATION_MS`(4초) 후 자동으로 사라짐 — (런타임, E2E 패스)
+- [ ] 친구가 화면 밖일 때 offscreen 말풍선으로도 표시됨 — (런타임, E2E 패스)
+
+## 구현 메모 (index 기반)
+- Intent: `data object SimulateGuestChat` → `data class SimulateGuestChat(val friendIndex: Int)`.
+  UI가 userId를 몰라도 순번(0=광화문, 1=강남)으로 친구 지정.
+- `sendChat`/`simulateGuestChat`의 말풍선 표시+자동닫힘을 `showChatBubble(userId, message)`로 공통화.
+  timestamp 가드로 그 사이 새 말풍선이 뜨면 이전 코루틴이 지우지 않음(친구별 독립 타이머).
+- `sendChat`의 "index==0을 나로 가정" 하드코딩 제거 → `currentHostId` 기반(폴백: 첫 마커).
+- `FRIEND_TEST_CHAT`(단일 문구) 제거 → `CANNED_GUEST_CHATS`(4개) 회전.
+- UI: "🧪 상대 채팅" 1개 → "🧪 광화문 친구"/"🧪 강남 친구" 2개. 버튼 3개가 되어 Column+Row 2행 배치
+  (FlowRow 실험 API 회피). 모두 `MeetPinSecondaryButton`(DS) 사용 → 가드레일 그린.

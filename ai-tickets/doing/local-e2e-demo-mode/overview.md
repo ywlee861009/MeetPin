@@ -57,7 +57,7 @@ phase 문서는 **안 A** 기준으로 작성한다. 안 B로 갈 경우 phase2�
 |---|---|---|---|
 | 1 | `phase1_seed-three-participants.md` | Fake 시드를 호스트+친구2명으로 확장 | 필수 (✅ 코드/컴파일 완료, 런타임 검증 phase3 후) |
 | 2 | `phase2_per-friend-demo-locations.md` | 친구별 고정 위치(광화문/강남) 소스 배관, ViewModel 복원 | 필수 (✅ 코드/컴파일 완료, 런타임 검증 phase3 후) |
-| 3 | `phase3_chat-simulation.md` | 친구별 채팅 더미 버튼 + 캔드 메시지 + 자동 닫힘 | 필수 |
+| 3 | `phase3_chat-simulation.md` | 친구별 채팅 더미 버튼 + 캔드 메시지 + 자동 닫힘 | 필수 (✅ 코드/컴파일/가드레일 완료, 런타임 검증 대기) |
 | 4 | `phase4_movement-and-arrival.md` | (선택) 친구가 목적지로 이동하는 애니메이션 + 도착 상태 | 선택 |
 | 5 | `phase5_quick-demo-entry.md` | (선택) 핀 생성 건너뛰고 데모 그룹으로 바로 진입하는 디버그 버튼/딥링크 | 선택 |
 

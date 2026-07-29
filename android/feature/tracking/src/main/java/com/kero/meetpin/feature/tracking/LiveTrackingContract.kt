@@ -50,8 +50,12 @@ sealed interface LiveTrackingIntent : UiIntent {
     /** [DEBUG 전용] 초대받은 상대가 수락한 상황을 단일 기기에서 시뮬레이션한다. */
     data object SimulateGuestAccept : LiveTrackingIntent
 
-    /** [DEBUG 전용] 친구가 채팅을 보낸 상황을 시뮬레이션한다. */
-    data object SimulateGuestChat : LiveTrackingIntent
+    /**
+     * [DEBUG 전용] 친구가 채팅을 보낸 상황을 시뮬레이션한다.
+     * [friendIndex]는 비호스트(친구) 참가자의 순번(0=첫 친구, 1=둘째 친구…).
+     * userId 대신 순번을 쓰므로 UI가 :core:data의 참가자 id를 알 필요가 없다.
+     */
+    data class SimulateGuestChat(val friendIndex: Int) : LiveTrackingIntent
 }
 
 /**
