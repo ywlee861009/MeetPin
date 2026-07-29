@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -22,6 +25,8 @@ import com.kero.meetpin.core.designsystem.theme.PillShape
  * 기본(Primary) 버튼 — 강조색 채움, 알약형.
  *
  * 핀 레드 위 흰 텍스트는 대비 AA-large 구간이므로 라벨은 항상 볼드(labelLarge)로 둔다.
+ *
+ * @param loading true면 로딩 스피너를 앞에 표시하고 클릭을 막는다.
  */
 @Composable
 fun MeetPinButton(
@@ -29,12 +34,13 @@ fun MeetPinButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    loading: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     Button(
         onClick = onClick,
         modifier = modifier.heightIn(min = 52.dp),
-        enabled = enabled,
+        enabled = enabled && !loading,
         shape = PillShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -42,7 +48,7 @@ fun MeetPinButton(
         ),
         contentPadding = PaddingValues(horizontal = 22.dp, vertical = 14.dp),
     ) {
-        ButtonContent(text, leadingIcon)
+        ButtonContent(text, loading, leadingIcon)
     }
 }
 
@@ -55,12 +61,13 @@ fun MeetPinSecondaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    loading: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 52.dp),
-        enabled = enabled,
+        enabled = enabled && !loading,
         shape = PillShape,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(
@@ -68,7 +75,7 @@ fun MeetPinSecondaryButton(
         ),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
     ) {
-        ButtonContent(text, leadingIcon)
+        ButtonContent(text, loading, leadingIcon)
     }
 }
 
@@ -81,28 +88,43 @@ fun MeetPinGhostButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    loading: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
     TextButton(
         onClick = onClick,
         modifier = modifier.heightIn(min = 48.dp),
-        enabled = enabled,
+        enabled = enabled && !loading,
         shape = PillShape,
         colors = ButtonDefaults.textButtonColors(
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        ButtonContent(text, leadingIcon)
+        ButtonContent(text, loading, leadingIcon)
     }
 }
 
 @Composable
-private fun ButtonContent(text: String, leadingIcon: (@Composable () -> Unit)?) {
+private fun ButtonContent(
+    text: String,
+    loading: Boolean,
+    leadingIcon: (@Composable () -> Unit)?,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        if (leadingIcon != null) {
-            leadingIcon()
-            Spacer(Modifier.width(8.dp))
+        when {
+            loading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = LocalContentColor.current,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            leadingIcon != null -> {
+                leadingIcon()
+                Spacer(Modifier.width(8.dp))
+            }
         }
         Text(text = text, style = MaterialTheme.typography.labelLarge)
     }

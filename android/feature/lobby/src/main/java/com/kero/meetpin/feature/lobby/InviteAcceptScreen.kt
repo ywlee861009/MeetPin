@@ -10,14 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -33,6 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kero.meetpin.core.designsystem.component.MeetPinButton
+import com.kero.meetpin.core.designsystem.component.MeetPinCard
+import com.kero.meetpin.core.designsystem.component.MeetPinSecondaryButton
 import com.kero.meetpin.core.model.MeetPinGroup
 import kotlinx.coroutines.flow.collectLatest
 import java.text.SimpleDateFormat
@@ -153,19 +150,11 @@ private fun InviteCard(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
+        MeetPinCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 // 약속 이름
                 Text(
                     text = group.title,
@@ -191,7 +180,6 @@ private fun InviteCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -201,37 +189,20 @@ private fun InviteCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 거절 버튼
-            OutlinedButton(
+            MeetPinSecondaryButton(
+                text = "거절하기",
                 onClick = onDecline,
                 modifier = Modifier.weight(1f),
                 enabled = !isAccepting && !isDeclining,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isDeclining) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(end = 4.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-                Text("거절하기")
-            }
-
-            // 승낙 버튼
-            Button(
+                loading = isDeclining
+            )
+            MeetPinButton(
+                text = "승낙하기",
                 onClick = onAccept,
                 modifier = Modifier.weight(1f),
                 enabled = !isAccepting && !isDeclining,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isAccepting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(end = 4.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-                Text("승낙하기")
-            }
+                loading = isAccepting
+            )
         }
     }
 }

@@ -28,8 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kero.meetpin.core.designsystem.component.PinMarker
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.MeetPinMapUiSettings
 import com.kero.meetpin.core.model.GeoPoint
@@ -128,8 +128,8 @@ fun CreatePinScreen(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                // 고정 핀
-                Text(text = "📍", fontSize = 44.sp)
+                // 고정 핀 (디자인 시스템 마커)
+                PinMarker(size = 40.dp)
             }
         }
     }
