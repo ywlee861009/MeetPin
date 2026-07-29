@@ -29,13 +29,11 @@ class DesignSystemGuardrailTest {
     )
 
     /**
-     * TODO(DS 이관): LiveTracking 화면의 WIP(디버그 모의 코드) 정리 후 DS 컴포넌트로 이관하고
-     * 이 예외를 제거한다. 예외가 비면 규칙 2가 tracking 화면에도 완전 적용된다.
+     * DS 이관 임시 예외 목록. LiveTracking 화면 이관 완료로 현재는 비어 있으며,
+     * 규칙 2가 모든 feature 화면에 예외 없이 적용된다. 새 화면을 잠시 유예해야 할
+     * 때만 파일명을 추가한다(가능한 한 비워 둔다).
      */
-    private val pendingMigration = setOf(
-        "LiveTrackingScreen.kt",
-        "ParticipantStatusSheet.kt",
-    )
+    private val pendingMigration = emptySet<String>()
 
     @Test
     fun `feature 모듈은 색을 하드코딩하지 않는다`() {
