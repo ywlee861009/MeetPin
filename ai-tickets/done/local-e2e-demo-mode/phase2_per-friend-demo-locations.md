@@ -33,7 +33,13 @@ WIP(`bc73438`)는 호스트 외 모든 참가자를 단일 상수 `FRIEND_TEST_L
 - 배관 없이 즉시 동작하나 데모 좌표가 프로덕션 코드에 남는다. movement(phase4) 확장 시 재작업.
 
 ## 검증
-- [ ] `:feature:tracking`(+ 안 A면 `:core:location`) 컴파일, `:app` 컴파일
-- [ ] 트래킹 지도에 마커 3개가 **서로 다른 위치**(내 GPS/광화문/강남)에 표시
-- [ ] 하단 시트에 친구2명의 거리/ETA가 좌표에 맞게 다르게 계산되어 표시
-- [ ] `DesignSystemGuardrailTest` 그린 유지 (UI 변경 시 DS 컴포넌트만 사용)
+- [x] `:feature:tracking` 컴파일, `:app` 컴파일 (EXIT=0) — 안 B라 `:core:location` 미변경
+- [ ] 트래킹 지도에 마커 3개가 **서로 다른 위치**(내 GPS/광화문/강남)에 표시 — (런타임, phase3 이후 E2E 패스)
+- [ ] 하단 시트에 친구2명의 거리/ETA가 좌표에 맞게 다르게 계산되어 표시 — (런타임, phase3 이후 E2E 패스)
+- [x] `DesignSystemGuardrailTest` 영향 없음 — phase2는 UI 변경 없음(ViewModel 로직만)
+
+## 구현 메모 (안 B · index 기반)
+- `observeGroupLocations`/`updateGroupLocations`/3-way combine 배관 **불필요** — 기존 2-way combine 유지.
+- `startTracking`에서 ACCEPTED 참가자 중 비호스트에 순번을 매겨(`friendIndexByUserId`)
+  `demoFriendLocation(index)`로 좌표 배정. 좌표 수 초과 시 modulo 순환.
+- 기존 `FRIEND_TEST_LOCATION`(단일 광화문) 제거 → `DEMO_FRIEND_LOCATIONS`(광화문/강남 리스트).

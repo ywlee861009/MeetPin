@@ -73,14 +73,25 @@ class LiveTrackingViewModel @Inject constructor(
             val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
 
             // 수락(ACCEPTED)한 참가자만 지도·목록에 표시한다. (대기 중인 초대는 숨김)
-            val markers = group.participants
+            val accepted = group.participants
                 .filter { it.inviteStatus == InviteStatus.ACCEPTED }
-                .map { participant ->
+
+            // [데모] 비호스트(친구)에게 순번(index)을 매겨 고정 좌표를 배정한다.
+            // userId를 키로 쓰지 않으므로 :core:data의 참가자 id 상수를 알 필요가 없다.
+            val friendIndexByUserId = accepted
+                .filter { it.userId != group.hostId }
+                .mapIndexed { index, participant -> participant.userId to index }
+                .toMap()
+
+            val markers = accepted.map { participant ->
                 val isHost = participant.userId == group.hostId
-                // 호스트(나) = 실제 GPS(없으면 핀), 친구 = 테스트용 광화문 좌표.
+                // 호스트(나) = 실제 GPS(없으면 핀), 친구 = 순번별 데모 좌표(광화문/강남…).
                 val position = when {
                     isHost -> myLocation ?: pinLatLng
-                    else -> FRIEND_TEST_LOCATION
+                    else -> {
+                        val friendIndex = friendIndexByUserId[participant.userId]
+                        friendIndex?.let { demoFriendLocation(it) } ?: pinLatLng
+                    }
                 }
 
                 // 기존 마커 정보 가져와서 currentPosition 유지 (애니메이션 보간용)
@@ -215,12 +226,22 @@ class LiveTrackingViewModel @Inject constructor(
         }
     }
 
+    /**
+     * [데모] 친구 순번(index)에 대응하는 고정 좌표를 돌려준다.
+     * 좌표 개수보다 친구가 많으면 순환시켜 마커가 핀에 겹치지 않게 한다.
+     */
+    private fun demoFriendLocation(friendIndex: Int): GeoPoint =
+        DEMO_FRIEND_LOCATIONS[friendIndex % DEMO_FRIEND_LOCATIONS.size]
+
     private companion object {
         /** 말풍선 표시 유지 시간 */
         const val CHAT_BUBBLE_DURATION_MS = 4_000L
 
-        /** [테스트] 친구 위치 — 광화문 광장 부근. */
-        val FRIEND_TEST_LOCATION = GeoPoint(37.5759, 126.9769)
+        /** [데모] 친구 위치 — 참가자 순번대로 배정. 0=광화문 광장, 1=강남역. */
+        val DEMO_FRIEND_LOCATIONS = listOf(
+            GeoPoint(37.5759, 126.9769), // 광화문 광장
+            GeoPoint(37.4979, 127.0276)  // 강남역
+        )
 
         /** [테스트] 친구가 보낸 채팅 문구. */
         const val FRIEND_TEST_CHAT = "거의 다 왔어! 🏃"
