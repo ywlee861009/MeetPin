@@ -58,8 +58,11 @@ phase 문서는 **안 A** 기준으로 작성한다. 안 B로 갈 경우 phase2�
 | 1 | `phase1_seed-three-participants.md` | Fake 시드를 호스트+친구2명으로 확장 | 필수 (✅ 코드/컴파일 완료, 런타임 검증 phase3 후) |
 | 2 | `phase2_per-friend-demo-locations.md` | 친구별 고정 위치(광화문/강남) 소스 배관, ViewModel 복원 | 필수 (✅ 코드/컴파일 완료, 런타임 검증 phase3 후) |
 | 3 | `phase3_chat-simulation.md` | 친구별 채팅 더미 버튼 + 캔드 메시지 + 자동 닫힘 | 필수 (✅ 코드/컴파일/가드레일 완료, 런타임 검증 대기) |
-| 4 | `phase4_movement-and-arrival.md` | (선택) 친구가 목적지로 이동하는 애니메이션 + 도착 상태 | 선택 |
-| 5 | `phase5_quick-demo-entry.md` | (선택) 핀 생성 건너뛰고 데모 그룹으로 바로 진입하는 디버그 버튼/딥링크 | 선택 |
+| 4 | `phase4_movement-and-arrival.md` | (선택) 친구가 목적지로 이동하는 애니메이션 + 도착 상태 | 선택 (todo 유지) |
+| 5 | `phase5_quick-demo-entry.md` | (선택) 핀 생성 건너뛰고 데모 그룹으로 바로 진입하는 디버그 버튼/딥링크 | 선택 (todo 유지) |
+
+> **참고**: 도착 상태(`isArrived`) 반영 수단(`MeetPinRepository.reportArrival`)은
+> `post-navigation-gaps`의 phase4에서 이미 구현됨. phase4(친구 이동→도착) 착수 시 재사용한다.
 
 ## 🔗 선행 관계
 - phase1 → phase2 → phase3 (핵심 데모 완성). phase4·5는 독립적 선택 사항.
@@ -74,4 +77,5 @@ phase 문서는 **안 A** 기준으로 작성한다. 안 B로 갈 경우 phase2�
 - 이 티켓은 WIP 커밋(`bc73438`)의 임시 친구-광화문 로직을 **정식 데모 소스로 대체**한다.
 
 ## 상태
-- ⏳ 대기
+- ✅ 핵심(phase1~3) 완료 및 런타임 검증 완료 → 에픽 종료 (2026-07-30)
+- 선택 phase4·5는 `todo`에 남겨둠 (필요 시 착수)
