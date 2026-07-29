@@ -43,10 +43,19 @@
 
 phase 문서는 **안 A** 기준으로 작성한다. 안 B로 갈 경우 phase2를 그에 맞게 축소한다.
 
+> **결정(2026-07-29): 안 B 채택 + index 기반 변형.**
+> `Map<userId, GeoPoint>` 대신, 트래킹 화면이 **비호스트 참가자 순번(index)** 으로
+> 좌표를 배정한다(첫 친구→광화문, 둘째→강남). 이유: 안 B 원안대로 userId 키를 쓰면
+> data 모듈의 private 상수를 feature 모듈에 노출/중복해야 하는 커플링이 생긴다.
+> index 기반이면 데모 좌표 테이블이 ViewModel 안에서 자기완결된다.
+> → phase2는 `observeGroupLocations`/`updateGroupLocations`/3-way combine 배관 없이
+>   기존 combine의 `else -> FRIEND_TEST_LOCATION` 분기만 순번 조회로 교체한다.
+> → phase3의 채팅 시뮬 Intent도 userId 대신 friend 순번(index) 기반으로 둔다.
+
 ## 📋 하위 티켓
 | Phase | 파일 | 요약 | 필수 |
 |---|---|---|---|
-| 1 | `phase1_seed-three-participants.md` | Fake 시드를 호스트+친구2명으로 확장 | 필수 |
+| 1 | `phase1_seed-three-participants.md` | Fake 시드를 호스트+친구2명으로 확장 | 필수 (✅ 코드/컴파일 완료, 런타임 검증 phase3 후) |
 | 2 | `phase2_per-friend-demo-locations.md` | 친구별 고정 위치(광화문/강남) 소스 배관, ViewModel 복원 | 필수 |
 | 3 | `phase3_chat-simulation.md` | 친구별 채팅 더미 버튼 + 캔드 메시지 + 자동 닫힘 | 필수 |
 | 4 | `phase4_movement-and-arrival.md` | (선택) 친구가 목적지로 이동하는 애니메이션 + 도착 상태 | 선택 |

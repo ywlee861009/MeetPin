@@ -30,6 +30,12 @@
 - `isAllAccepted`(모두 ACCEPTED)로 그룹이 `ACTIVE` 전이되는 로직은 그대로 유효하다.
 
 ## 검증
-- [ ] `:core:data`, `:app` 컴파일
-- [ ] 핀 생성 → 대기실에서 대기 친구 **2명** 표시 확인
-- [ ] 디버그 `SimulateGuestAccept` 후 트래킹 진입, 참가자 시트에 **3줄**(나+친구2) 표시
+- [x] `:core:data`, `:app` 컴파일 (EXIT=0)
+- [ ] 핀 생성 → 대기실에서 대기 친구 **2명** 표시 확인 — (런타임, phase3 이후 E2E 패스에서 확인)
+- [ ] 디버그 `SimulateGuestAccept` 후 트래킹 진입, 참가자 시트에 **3줄**(나+친구2) 표시 — (런타임, phase3 이후 E2E 패스에서 확인)
+
+## 구현 메모
+- index 기반 방침 채택: userId는 서로 구분만 되면 되고 좌표는 트래킹 화면이 순번으로 배정.
+  → data 모듈 companion 상수를 feature 모듈에 노출할 필요 없음.
+- `GUEST_USER_ID` → `FRIEND1_USER_ID`("user-friend-1") / `FRIEND2_USER_ID`("user-friend-2")로 대체.
+  소스 참조 없음(빌드 산출물만 stale) 확인.

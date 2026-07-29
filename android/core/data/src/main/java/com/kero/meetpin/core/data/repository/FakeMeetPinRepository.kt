@@ -24,9 +24,12 @@ import javax.inject.Singleton
  * 구현체를 새로 작성하고 `DataModule`의 바인딩만 교체하면 됩니다.
  *
  * 단일 기기에서 전체 플로우(핀 생성 → 초대 → 대기실 → 트래킹)를 시연할 수 있도록,
- * 그룹 생성 시 호스트(승낙 완료)와 초대받은 참가자 1명(승낙 대기)을 함께 만든다.
+ * 그룹 생성 시 호스트(승낙 완료)와 초대받은 친구 2명(승낙 대기)을 함께 만든다.
  * [updateInviteStatus]로 대기 중인 참가자가 승낙하면 전원 승낙이 되어
  * 그룹 상태가 [GroupStatus.ACTIVE]로 전이된다.
+ *
+ * 친구의 데모 위치는 참가자 순번(index)으로 트래킹 화면에서 배정되므로,
+ * 여기서는 서로 구분되는 userId·닉네임만 부여하면 된다(좌표는 알 필요 없음).
  */
 @Singleton
 class FakeMeetPinRepository @Inject constructor() : MeetPinRepository {
@@ -55,8 +58,13 @@ class FakeMeetPinRepository @Inject constructor() : MeetPinRepository {
                     inviteStatus = InviteStatus.ACCEPTED
                 ),
                 Participant(
-                    userId = GUEST_USER_ID,
-                    nickname = "초대받은 친구",
+                    userId = FRIEND1_USER_ID,
+                    nickname = "광화문 친구",
+                    inviteStatus = InviteStatus.PENDING
+                ),
+                Participant(
+                    userId = FRIEND2_USER_ID,
+                    nickname = "강남 친구",
                     inviteStatus = InviteStatus.PENDING
                 )
             )
@@ -107,6 +115,7 @@ class FakeMeetPinRepository @Inject constructor() : MeetPinRepository {
 
     private companion object {
         const val HOST_USER_ID = "user-host"
-        const val GUEST_USER_ID = "user-guest"
+        const val FRIEND1_USER_ID = "user-friend-1" // 광화문 친구
+        const val FRIEND2_USER_ID = "user-friend-2" // 강남 친구
     }
 }
