@@ -16,4 +16,6 @@
 - `phase2_remove-guardrail-exception.md` — `pendingMigration` 예외 제거 후 가드레일 그린 확인
 
 ## 상태
-- ⏳ 대기
+- ✅ 선행: WIP를 디버그/데모 커밋으로 정리 완료
+- ✅ phase1: LiveTracking 화면 DS 이관 완료
+- ⏳ phase2: 가드레일 예외 제거 진행 예정

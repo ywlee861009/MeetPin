@@ -1,36 +1,29 @@
 package com.kero.meetpin.feature.tracking
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kero.meetpin.core.designsystem.component.LiveBadge
+import com.kero.meetpin.core.designsystem.component.MeetPinGhostButton
+import com.kero.meetpin.core.designsystem.component.ParticipantRow
 
 /**
  * 하단 참가자 상태 시트.
  *
- * 멤버별 약속 장소까지의 남은 거리(m/km) 및 예상 소요시간(ETA) 카드 표시.
+ * 멤버별 약속 장소까지의 남은 거리(m/km) 및 예상 소요시간(ETA)을 DS [ParticipantRow]로 표시.
  * 멤버 클릭 시 해당 마커 위치로 지도 카메라 이동.
  */
 @Composable
@@ -64,128 +57,31 @@ fun ParticipantStatusSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // 참가자 카드 리스트
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        // 참가자 상태 리스트
+        LazyColumn {
             items(
                 items = participantMarkers,
                 key = { it.participant.userId }
             ) { marker ->
-                ParticipantStatusCard(
-                    participantMarker = marker,
-                    onClick = { onParticipantClick(marker.participant.userId) }
-                )
-            }
-        }
-    }
-}
-
-/**
- * 개별 참가자 상태 카드.
- *
- * - 프로필 아바타
- * - 이름
- * - 남은 거리 (m/km)
- * - 예상 소요시간 (ETA)
- * - 도착 여부
- */
-@Composable
-private fun ParticipantStatusCard(
-    participantMarker: ParticipantMarker,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val participant = participantMarker.participant
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (participant.isArrived) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 프로필 아바타
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (participant.isArrived) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (participant.isArrived) "✅" else participant.nickname.take(1),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (participant.isArrived) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // 이름 + 상태
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = participant.nickname,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = if (participant.isArrived) {
+                val participant = marker.participant
+                ParticipantRow(
+                    name = participant.nickname,
+                    statusLabel = if (participant.isArrived) {
                         "도착 완료!"
                     } else {
-                        "이동 중..."
+                        marker.etaMinutes?.let { "이동 중 · ${formatEta(it)}" } ?: "이동 중..."
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    distanceLabel = if (participant.isArrived) {
+                        ""
+                    } else {
+                        formatDistance(marker.distanceToPin)
+                    },
+                    isArrived = participant.isArrived,
+                    onClick = { onParticipantClick(participant.userId) },
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-
-            // 거리 + ETA
-            if (!participant.isArrived) {
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = formatDistance(participantMarker.distanceToPin),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    participantMarker.etaMinutes?.let { eta ->
-                        Text(
-                            text = formatEta(eta),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
             }
         }
     }
@@ -193,6 +89,8 @@ private fun ParticipantStatusCard(
 
 /**
  * 상단 라이브 공유 안내 바.
+ *
+ * 공유 중이면 DS [LiveBadge](맥동 도트)와 끄기 액션을, 중지 상태면 안내 문구를 보여준다.
  */
 @Composable
 fun LiveSharingTopBar(
@@ -203,33 +101,22 @@ fun LiveSharingTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                if (isActive) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.error
-            )
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = if (isActive) "📡 실시간 위치 공유 중" else "⏹ 위치 공유 중지됨",
-            style = MaterialTheme.typography.labelLarge,
-            color = if (isActive) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onError,
-            fontWeight = FontWeight.SemiBold
-        )
-
         if (isActive) {
-            Text(
+            LiveBadge(text = "실시간 위치 공유 중")
+            MeetPinGhostButton(
                 text = "공유 끄기",
+                onClick = onStopSharing
+            )
+        } else {
+            Text(
+                text = "⏹ 위치 공유 중지됨",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f))
-                    .clickable(onClick = onStopSharing)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                color = MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

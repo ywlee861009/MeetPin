@@ -10,7 +10,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,23 +21,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -49,16 +40,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.kero.meetpin.core.designsystem.component.MeetPinAvatar
+import com.kero.meetpin.core.designsystem.component.MeetPinButton
+import com.kero.meetpin.core.designsystem.component.MeetPinChatBubble
+import com.kero.meetpin.core.designsystem.component.MeetPinSecondaryButton
+import com.kero.meetpin.core.designsystem.component.MeetPinTextField
 import com.kero.meetpin.core.location.LocationTrackingService
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.MapMarkerScope
@@ -74,6 +68,7 @@ import kotlinx.coroutines.flow.collectLatest
  * - 약속 장소 핀 마커
  *
  * 지도 렌더링은 [LocalMapRenderer]로 주입된 벤더 구현에 위임한다.
+ * UI 원자는 모두 `:core:designsystem` 컴포넌트를 쓴다(M3 원자 직접 사용 금지).
  */
 @Composable
 fun LiveTrackingScreen(
@@ -171,14 +166,13 @@ fun LiveTrackingScreen(
                 )
 
                 // 초대 공유
-                Button(
+                MeetPinButton(
+                    text = "🔗 초대 링크 공유",
                     onClick = { shareInviteLink(context, state.inviteCode) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text("🔗 초대 링크 공유")
-                }
+                )
 
                 // (디버그) 상대 수락 / 상대 채팅 시뮬
                 if (showDebugTools) {
@@ -189,22 +183,20 @@ fun LiveTrackingScreen(
                             .padding(bottom = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
+                        MeetPinSecondaryButton(
+                            text = "🧪 상대 수락",
                             onClick = {
                                 viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
                             },
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text("🧪 상대 수락")
-                        }
-                        OutlinedButton(
+                        )
+                        MeetPinSecondaryButton(
+                            text = "🧪 상대 채팅",
                             onClick = {
                                 viewModel.processIntent(LiveTrackingIntent.SimulateGuestChat)
                             },
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text("🧪 상대 채팅")
-                        }
+                        )
                     }
                 }
 
@@ -280,24 +272,14 @@ fun LiveTrackingScreen(
                                         intersectY = yEdge
                                     }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .absoluteOffset(
-                                                x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
-                                                y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
-                                            )
-                                            .background(
-                                                MaterialTheme.colorScheme.tertiaryContainer,
-                                                RoundedCornerShape(12.dp)
-                                            )
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Text(
-                                            text = marker.chatMessage ?: "",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    MeetPinChatBubble(
+                                        text = marker.chatMessage ?: "",
+                                        isMine = false,
+                                        modifier = Modifier.absoluteOffset(
+                                            x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
+                                            y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
                                         )
-                                    }
+                                    )
                                 }
                             }
                     }
@@ -379,72 +361,31 @@ fun MapMarkerScope.AnimatedParticipantMarker(
                 enter = fadeIn() + slideInVertically(initialOffsetY = { 20 }),
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { 20 })
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = participantMarker.chatMessage ?: "",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                MeetPinChatBubble(
+                    text = participantMarker.chatMessage ?: "",
+                    isMine = false,
+                )
             }
             if (!participantMarker.chatMessage.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            // 커스텀 아바타 마커
-            AvatarMarker(
-                initial = participantMarker.participant.nickname.take(1),
-                profileImageUrl = participantMarker.participant.profileImageUrl,
-                isArrived = participantMarker.participant.isArrived
-            )
-        }
-    }
-}
-
-/**
- * 참가자 아바타 마커 Composable.
- */
-@Composable
-private fun AvatarMarker(
-    initial: String,
-    profileImageUrl: String?,
-    isArrived: Boolean
-) {
-    val bgColor = if (isArrived) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.secondaryContainer
-    }
-    val textColor = if (isArrived) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    }
-
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(bgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!profileImageUrl.isNullOrEmpty()) {
-            AsyncImage(
-                model = profileImageUrl,
-                contentDescription = "Profile Image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            Text(
-                text = initial,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = textColor
+            // 커스텀 아바타 마커 (프로필 이미지는 content 슬롯으로 위임)
+            MeetPinAvatar(
+                initial = participantMarker.participant.nickname,
+                isArrived = participantMarker.participant.isArrived,
+                content = participantMarker.participant.profileImageUrl
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { url ->
+                        {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = "프로필 이미지",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    },
             )
         }
     }
@@ -494,11 +435,11 @@ fun ChatInputBar(onSendChat: (String) -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
+        MeetPinTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.weight(1f),
-            placeholder = { Text("채팅을 입력하세요...") },
+            placeholder = "채팅을 입력하세요...",
             singleLine = true
         )
         Spacer(modifier = Modifier.width(8.dp))
