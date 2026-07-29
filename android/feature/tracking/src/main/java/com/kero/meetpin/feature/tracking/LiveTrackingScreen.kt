@@ -5,11 +5,13 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -374,8 +377,19 @@ fun MapMarkerScope.AnimatedParticipantMarker(
         ) {
             AnimatedVisibility(
                 visible = !participantMarker.chatMessage.isNullOrEmpty(),
-                enter = fadeIn() + slideInVertically(initialOffsetY = { 20 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { 20 })
+                // 뾱! 하고 마커 위로 튀어오르듯 팝(바운스 스프링) → 4초 뒤 뾱! 하고 쏙 사라짐.
+                // 말풍선은 마커 위에 있으므로 하단 중앙(0.5, 1)을 기준점으로 스케일한다.
+                enter = scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    transformOrigin = TransformOrigin(0.5f, 1f),
+                ) + fadeIn(animationSpec = tween(durationMillis = 120)),
+                exit = scaleOut(
+                    animationSpec = tween(durationMillis = 150),
+                    transformOrigin = TransformOrigin(0.5f, 1f),
+                ) + fadeOut(animationSpec = tween(durationMillis = 150)),
             ) {
                 MeetPinChatBubble(
                     text = participantMarker.chatMessage ?: "",
