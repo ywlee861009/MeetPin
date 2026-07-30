@@ -2,16 +2,21 @@ package com.kero.meetpin.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kero.meetpin.app.navigation.MeetPinNavHost
 import com.kero.meetpin.app.navigation.MeetPinRoute
 import com.kero.meetpin.core.designsystem.theme.MeetPinTheme
+import com.kero.meetpin.core.designsystem.window.LocalWindowSizeClass
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.google.GoogleMapRenderer
 import com.kero.meetpin.feature.lobby.DeepLinkHandler
@@ -24,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * 화면 구성은 전부 [MeetPinNavHost]가 담당한다. 각 화면이 자체 `Scaffold`를 갖고 있으므로
  * 여기서 `Scaffold`로 한 번 더 감싸지 않는다 (system bar inset이 이중 적용된다).
  */
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -48,7 +54,20 @@ class MainActivity : ComponentActivity() {
             MeetPinTheme {
                 // 지도 벤더 주입 지점. 카카오/네이버로 교체 시 이 한 줄만 바꾼다.
                 val mapRenderer = remember { GoogleMapRenderer() }
-                CompositionLocalProvider(LocalMapRenderer provides mapRenderer) {
+                // 창 크기 분류(Compact/Medium/Expanded)를 계산해 전역 공급한다.
+                // feature 화면들은 LocalWindowSizeClass로 읽어 폰/태블릿 레이아웃을 분기한다.
+                val windowSizeClass = calculateWindowSizeClass(this)
+                // phase1 검증: 폰(Compact) vs 태블릿(Expanded) 인식 여부를 로그로 확인.
+                LaunchedEffect(windowSizeClass) {
+                    Log.d(
+                        "WindowSizeClass",
+                        "width=${windowSizeClass.widthSizeClass}, height=${windowSizeClass.heightSizeClass}"
+                    )
+                }
+                CompositionLocalProvider(
+                    LocalMapRenderer provides mapRenderer,
+                    LocalWindowSizeClass provides windowSizeClass,
+                ) {
                     val inviteCode by pendingInviteCode.collectAsStateWithLifecycle()
                     MeetPinNavHost(
                         startDestination = startInviteCode

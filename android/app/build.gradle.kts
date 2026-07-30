@@ -99,6 +99,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // calculateWindowSizeClass(activity) 호출용 (사이즈 클래스는 :core:designsystem로 공급)
+    implementation(libs.androidx.material3.window.sizeclass)
 
     // Location Services (지도 SDK는 :core:map-google 로 격리됨)
     implementation(libs.play.services.location)

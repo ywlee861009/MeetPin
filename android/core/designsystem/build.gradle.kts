@@ -38,6 +38,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // LocalWindowSizeClass가 WindowSizeClass 타입을 public API로 노출하므로,
+    // 이를 소비하는 feature 모듈의 컴파일 클래스패스에도 타입이 보여야 한다 → api
+    api(libs.androidx.material3.window.sizeclass)
     // 라이브 도트 맥동 애니메이션(rememberInfiniteTransition)
     implementation(libs.androidx.compose.animation)
 
