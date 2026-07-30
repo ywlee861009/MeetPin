@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -84,7 +85,11 @@ fun InviteAcceptScreen(
                 state.errorMessage != null && state.group == null -> {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
+                        // 대화면에서 텍스트가 가로로 과하게 퍼지지 않도록 폭 제한.
+                        // 폰 폭(<480dp)에선 no-op이라 사이즈 클래스 게이팅이 필요 없다.
+                        modifier = Modifier
+                            .widthIn(max = 480.dp)
+                            .padding(24.dp)
                     ) {
                         Text(
                             text = "😢",
@@ -109,7 +114,9 @@ fun InviteAcceptScreen(
                         isAccepting = state.isAccepting,
                         isDeclining = state.isDeclining,
                         onAccept = { viewModel.processIntent(InviteAcceptIntent.AcceptInvite) },
-                        onDecline = { viewModel.processIntent(InviteAcceptIntent.DeclineInvite) }
+                        onDecline = { viewModel.processIntent(InviteAcceptIntent.DeclineInvite) },
+                        // 대화면에서 카드가 가로로 늘어나지 않도록 폭 제한(폰에선 no-op).
+                        modifier = Modifier.widthIn(max = 480.dp)
                     )
                 }
             }
