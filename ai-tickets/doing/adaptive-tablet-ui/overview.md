@@ -6,7 +6,7 @@
 
 ## 📝 하위 티켓 목록
 - `phase1_window-size-class.md`: Jetpack Compose WindowSizeClass 도입 및 화면 크기 측정 기반 마련 — ✅ 완료 (2026-07-30)
-- `phase2_tracking-screen-tablet.md`: LiveTrackingScreen의 하단 시트를 태블릿 환경에서 좌/우측 패널로 분리 — ⏳ 대기
+- `phase2_tracking-screen-tablet.md`: LiveTrackingScreen의 하단 시트를 태블릿 환경에서 좌/우측 패널로 분리 — ✅ 완료 (2026-07-30, 런타임 확인 대기)
 - `phase3_other-screens-tablet.md`: 대기실(Lobby), 모임 생성 등 기타 화면의 반응형 레이아웃 대응 — ⏳ 대기
 
 > phase2·3에서 사이즈 클래스는 `com.kero.meetpin.core.designsystem.window.LocalWindowSizeClass`로 읽는다.

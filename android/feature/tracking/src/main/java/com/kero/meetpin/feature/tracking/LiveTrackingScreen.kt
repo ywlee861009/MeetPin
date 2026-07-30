@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,8 +57,11 @@ import com.kero.meetpin.core.designsystem.component.MeetPinButton
 import com.kero.meetpin.core.designsystem.component.MeetPinChatBubble
 import com.kero.meetpin.core.designsystem.component.MeetPinSecondaryButton
 import com.kero.meetpin.core.designsystem.component.MeetPinTextField
+import com.kero.meetpin.core.designsystem.window.LocalWindowSizeClass
+import com.kero.meetpin.core.designsystem.window.isExpandedWidth
 import com.kero.meetpin.core.location.LocationTrackingService
 import com.kero.meetpin.core.map.LocalMapRenderer
+import com.kero.meetpin.core.map.MapCameraState
 import com.kero.meetpin.core.map.MapMarkerScope
 import com.kero.meetpin.core.map.MeetPinMapUiSettings
 import com.kero.meetpin.core.model.GeoPoint
@@ -142,185 +146,271 @@ fun LiveTrackingScreen(
         }
     }
 
+    val windowSizeClass = LocalWindowSizeClass.current
+
+    // 화면 크기와 무관하게 재사용되는 콜백/서브 컴포저블. 폰(세로)·태블릿(가로) 두 배치에서
+    // 동일한 헤더/지도/참가자/채팅을 배치만 달리해 조립한다.
+    val header: @Composable () -> Unit = {
+        TrackingHeader(
+            state = state,
+            showDebugTools = showDebugTools,
+            onShareInvite = { shareInviteLink(context, state.inviteCode) },
+            onStopSharing = {
+                viewModel.processIntent(LiveTrackingIntent.StopLocationSharing)
+            },
+            onSimulateAccept = {
+                viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
+            },
+            onSimulateChat = { index ->
+                viewModel.processIntent(LiveTrackingIntent.SimulateGuestChat(friendIndex = index))
+            },
+        )
+    }
+    val participantSheet: @Composable (Modifier) -> Unit = { sheetModifier ->
+        ParticipantStatusSheet(
+            participantMarkers = state.participantMarkers,
+            participantCount = state.participantCount,
+            onParticipantClick = { userId ->
+                viewModel.processIntent(LiveTrackingIntent.FocusOnParticipant(userId))
+            },
+            modifier = sheetModifier
+        )
+    }
+    val chatInput: @Composable () -> Unit = {
+        ChatInputBar(
+            onSendChat = { message ->
+                viewModel.processIntent(LiveTrackingIntent.SendChat(message))
+            }
+        )
+    }
+    val mapArea: @Composable (Modifier) -> Unit = { mapModifier ->
+        TrackingMapArea(
+            state = state,
+            cameraState = cameraState,
+            mapSize = mapSize,
+            onMapSizeChanged = { mapSize = it },
+            modifier = mapModifier
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                // 상단 라이브 공유 안내 바
-                LiveSharingTopBar(
-                    isActive = state.isLocationSharingActive,
-                    onStopSharing = {
-                        viewModel.processIntent(LiveTrackingIntent.StopLocationSharing)
-                    }
-                )
-
-                // 초대 공유
-                MeetPinButton(
-                    text = "🔗 초대 링크 공유",
-                    onClick = { shareInviteLink(context, state.inviteCode) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                // (디버그) 상대 수락 / 친구별 채팅 시뮬
-                if (showDebugTools) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        MeetPinSecondaryButton(
-                            text = "🧪 상대 수락",
-                            onClick = {
-                                viewModel.processIntent(LiveTrackingIntent.SimulateGuestAccept)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            MeetPinSecondaryButton(
-                                text = "🧪 광화문 친구",
-                                onClick = {
-                                    viewModel.processIntent(
-                                        LiveTrackingIntent.SimulateGuestChat(friendIndex = 0)
-                                    )
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            MeetPinSecondaryButton(
-                                text = "🧪 강남 친구",
-                                onClick = {
-                                    viewModel.processIntent(
-                                        LiveTrackingIntent.SimulateGuestChat(friendIndex = 1)
-                                    )
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-
-                // 지도 영역 (2/3)
+        when {
+            state.isLoading -> {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(2f)
-                        .onGloballyPositioned { coordinates ->
-                            mapSize = coordinates.size
-                        }
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
                 ) {
-                    mapRenderer.Map(
-                        modifier = Modifier.fillMaxSize(),
-                        cameraState = cameraState,
-                        myLocationEnabled = true,
-                        uiSettings = MeetPinMapUiSettings(
-                            zoomControlsEnabled = true,
-                            myLocationButtonEnabled = false,
-                        ),
-                        // 지도 영역은 Scaffold innerPadding으로 이미 시스템 바 밖에 있으므로
-                        // 컨트롤에 추가 패딩이 필요 없다 (중복 인셋 방지).
-                        contentPadding = PaddingValues(0.dp),
-                        onMapClick = null,
-                    ) {
-                        // 약속 장소 핀 마커
-                        state.pinLocation?.let { pinPos ->
-                            Marker(
-                                position = pinPos,
-                                title = state.pinPlaceName,
-                                snippet = "약속 장소",
-                            )
-                        }
-
-                        // 참가자 마커 (부드러운 보간 애니메이션)
-                        state.participantMarkers.forEach { marker ->
-                            AnimatedParticipantMarker(participantMarker = marker)
-                        }
-                    }
-
-                    // 오프스크린 말풍선 오버레이
-                    if (mapSize.width > 0 && mapSize.height > 0) {
-                        state.participantMarkers
-                            .filter { !it.chatMessage.isNullOrEmpty() }
-                            .forEach { marker ->
-                                val screen = cameraState.toScreenOffset(marker.targetPosition)
-                                    ?: return@forEach
-                                val w = mapSize.width
-                                val h = mapSize.height
-
-                                // 화면 밖인지 체크 (패딩 여유 40px)
-                                if (screen.x < -40 || screen.y < -40 ||
-                                    screen.x > w + 40 || screen.y > h + 40
-                                ) {
-                                    val cx = w / 2f
-                                    val cy = h / 2f
-                                    val dx = screen.x - cx
-                                    val dy = screen.y - cy
-
-                                    val slope = if (dx != 0f) dy / dx else 1000000f
-
-                                    val margin = 100f // 모서리 여백
-                                    val xEdge = if (dx > 0) w.toFloat() - margin else margin
-                                    val yIntersection = cy + slope * (xEdge - cx)
-
-                                    var intersectX = xEdge
-                                    var intersectY = yIntersection
-
-                                    if (yIntersection < margin || yIntersection > h.toFloat() - margin) {
-                                        val yEdge = if (dy > 0) h.toFloat() - margin else margin
-                                        val xIntersection = cx + (yEdge - cy) / slope
-                                        intersectX = xIntersection
-                                        intersectY = yEdge
-                                    }
-
-                                    MeetPinChatBubble(
-                                        text = marker.chatMessage ?: "",
-                                        isMine = false,
-                                        modifier = Modifier.absoluteOffset(
-                                            x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
-                                            y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
-                                        )
-                                    )
-                                }
-                            }
-                    }
+                    CircularProgressIndicator()
                 }
+            }
 
-                // 채팅 입력 창
-                ChatInputBar(
-                    onSendChat = { message ->
-                        viewModel.processIntent(LiveTrackingIntent.SendChat(message))
+            windowSizeClass.isExpandedWidth -> {
+                // 태블릿/대화면: 좌측 1/3 고정 패널(정보·참가자·채팅) + 우측 2/3 지도.
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    ) {
+                        header()
+                        // 참가자 리스트가 남는 세로 공간을 차지하고, 채팅 입력은 패널 맨 아래.
+                        participantSheet(Modifier.weight(1f))
+                        chatInput()
                     }
-                )
+                    mapArea(
+                        Modifier
+                            .weight(2f)
+                            .fillMaxHeight()
+                    )
+                }
+            }
 
-                // 하단 참가자 상태 시트 (1/3)
-                ParticipantStatusSheet(
-                    participantMarkers = state.participantMarkers,
-                    participantCount = state.participantCount,
-                    onParticipantClick = { userId ->
-                        viewModel.processIntent(LiveTrackingIntent.FocusOnParticipant(userId))
-                    },
+            else -> {
+                // 폰: 상단 정보 → 지도(2/3) → 채팅 → 참가자(1/3) 세로 배치.
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    header()
+                    mapArea(
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(2f)
+                    )
+                    chatInput()
+                    participantSheet(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 상단 정보 영역 — 라이브 공유 바 + 초대 링크 버튼 + (디버그) 시뮬 버튼.
+ *
+ * 폰/태블릿 배치에서 동일하게 재사용하므로 별도 컴포저블로 분리한다.
+ * 호출부(`Column`/사이드 패널) 안에서 자식들을 세로로 쌓는다.
+ */
+@Composable
+private fun TrackingHeader(
+    state: LiveTrackingState,
+    showDebugTools: Boolean,
+    onShareInvite: () -> Unit,
+    onStopSharing: () -> Unit,
+    onSimulateAccept: () -> Unit,
+    onSimulateChat: (Int) -> Unit,
+) {
+    // 상단 라이브 공유 안내 바
+    LiveSharingTopBar(
+        isActive = state.isLocationSharingActive,
+        onStopSharing = onStopSharing
+    )
+
+    // 초대 공유
+    MeetPinButton(
+        text = "🔗 초대 링크 공유",
+        onClick = onShareInvite,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    )
+
+    // (디버그) 상대 수락 / 친구별 채팅 시뮬
+    if (showDebugTools) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MeetPinSecondaryButton(
+                text = "🧪 상대 수락",
+                onClick = onSimulateAccept,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MeetPinSecondaryButton(
+                    text = "🧪 광화문 친구",
+                    onClick = { onSimulateChat(0) },
+                    modifier = Modifier.weight(1f)
+                )
+                MeetPinSecondaryButton(
+                    text = "🧪 강남 친구",
+                    onClick = { onSimulateChat(1) },
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+}
+
+/**
+ * 지도 영역 — 벤더 지도 + 참가자/핀 마커 + 오프스크린 말풍선 오버레이.
+ *
+ * 오프스크린 오버레이 계산이 [mapSize]·[cameraState]에 강하게 결합돼 있어,
+ * 폰/태블릿 두 배치에서 중복 없이 쓰려면 지도를 통째로 이 컴포저블에 담는다.
+ */
+@Composable
+private fun TrackingMapArea(
+    state: LiveTrackingState,
+    cameraState: MapCameraState,
+    mapSize: IntSize,
+    onMapSizeChanged: (IntSize) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val mapRenderer = LocalMapRenderer.current
+    Box(
+        modifier = modifier
+            .onGloballyPositioned { coordinates ->
+                onMapSizeChanged(coordinates.size)
+            }
+    ) {
+        mapRenderer.Map(
+            modifier = Modifier.fillMaxSize(),
+            cameraState = cameraState,
+            myLocationEnabled = true,
+            uiSettings = MeetPinMapUiSettings(
+                zoomControlsEnabled = true,
+                myLocationButtonEnabled = false,
+            ),
+            // 지도 영역은 Scaffold innerPadding으로 이미 시스템 바 밖에 있으므로
+            // 컨트롤에 추가 패딩이 필요 없다 (중복 인셋 방지).
+            contentPadding = PaddingValues(0.dp),
+            onMapClick = null,
+        ) {
+            // 약속 장소 핀 마커
+            state.pinLocation?.let { pinPos ->
+                Marker(
+                    position = pinPos,
+                    title = state.pinPlaceName,
+                    snippet = "약속 장소",
+                )
+            }
+
+            // 참가자 마커 (부드러운 보간 애니메이션)
+            state.participantMarkers.forEach { marker ->
+                AnimatedParticipantMarker(participantMarker = marker)
+            }
+        }
+
+        // 오프스크린 말풍선 오버레이
+        if (mapSize.width > 0 && mapSize.height > 0) {
+            state.participantMarkers
+                .filter { !it.chatMessage.isNullOrEmpty() }
+                .forEach { marker ->
+                    val screen = cameraState.toScreenOffset(marker.targetPosition)
+                        ?: return@forEach
+                    val w = mapSize.width
+                    val h = mapSize.height
+
+                    // 화면 밖인지 체크 (패딩 여유 40px)
+                    if (screen.x < -40 || screen.y < -40 ||
+                        screen.x > w + 40 || screen.y > h + 40
+                    ) {
+                        val cx = w / 2f
+                        val cy = h / 2f
+                        val dx = screen.x - cx
+                        val dy = screen.y - cy
+
+                        val slope = if (dx != 0f) dy / dx else 1000000f
+
+                        val margin = 100f // 모서리 여백
+                        val xEdge = if (dx > 0) w.toFloat() - margin else margin
+                        val yIntersection = cy + slope * (xEdge - cx)
+
+                        var intersectX = xEdge
+                        var intersectY = yIntersection
+
+                        if (yIntersection < margin || yIntersection > h.toFloat() - margin) {
+                            val yEdge = if (dy > 0) h.toFloat() - margin else margin
+                            val xIntersection = cx + (yEdge - cy) / slope
+                            intersectX = xIntersection
+                            intersectY = yEdge
+                        }
+
+                        MeetPinChatBubble(
+                            text = marker.chatMessage ?: "",
+                            isMine = false,
+                            modifier = Modifier.absoluteOffset(
+                                x = with(LocalDensity.current) { intersectX.toDp() } - 30.dp,
+                                y = with(LocalDensity.current) { intersectY.toDp() } - 20.dp
+                            )
+                        )
+                    }
+                }
         }
     }
 }
