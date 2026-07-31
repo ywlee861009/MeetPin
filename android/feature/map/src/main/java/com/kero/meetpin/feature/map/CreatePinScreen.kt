@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.kero.meetpin.core.designsystem.component.MeetPinSecondaryButton
 import com.kero.meetpin.core.designsystem.component.PinMarker
 import com.kero.meetpin.core.map.LocalMapRenderer
 import com.kero.meetpin.core.map.MeetPinMapUiSettings
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun CreatePinScreen(
     hasLocationPermission: Boolean = false,
+    showDebugTools: Boolean = false,
     onNavigateToLiveTracking: (groupId: String) -> Unit = {},
     viewModel: CreatePinViewModel = hiltViewModel()
 ) {
@@ -130,6 +133,20 @@ fun CreatePinScreen(
 
                 // 고정 핀 (디자인 시스템 마커)
                 PinMarker(size = 40.dp)
+            }
+
+            // (디버그) 핀 생성 단계를 건너뛰고 데모 그룹으로 바로 트래킹 진입.
+            if (showDebugTools) {
+                MeetPinSecondaryButton(
+                    text = "🧪 데모 트래킹 열기",
+                    onClick = { viewModel.processIntent(PinCreateIntent.CreateDemoGroup) },
+                    enabled = !state.isSubmitting,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(WindowInsets.systemBars.asPaddingValues())
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .fillMaxWidth()
+                )
             }
         }
     }

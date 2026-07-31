@@ -75,6 +75,8 @@ fun MeetPinNavHost(
         composable(route = MeetPinRoute.CREATE_PIN) {
             CreatePinScreen(
                 hasLocationPermission = hasLocationPermission,
+                // 핀 생성 없이 데모 그룹으로 바로 진입하는 버튼은 debug 빌드에서만 노출한다.
+                showDebugTools = BuildConfig.DEBUG,
                 onNavigateToLiveTracking = { groupId ->
                     navController.navigate(MeetPinRoute.liveTracking(groupId)) {
                         // 생성 후 뒤로가기로 돌아가 중복 생성하는 것을 막는다.

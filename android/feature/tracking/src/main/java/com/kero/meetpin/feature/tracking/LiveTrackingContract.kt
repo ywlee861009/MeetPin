@@ -57,6 +57,12 @@ sealed interface LiveTrackingIntent : UiIntent {
      * userId 대신 순번을 쓰므로 UI가 :core:data의 참가자 id를 알 필요가 없다.
      */
     data class SimulateGuestChat(val friendIndex: Int) : LiveTrackingIntent
+
+    /**
+     * [DEBUG 전용] 친구들이 각자 위치에서 약속 장소로 이동해 도착하는 상황을 시뮬레이션한다.
+     * 누르면 친구 마커가 목적지 핀 쪽으로 보간 이동하고, 반경 진입 시 도착 상태로 전환된다.
+     */
+    data object SimulateFriendsDeparture : LiveTrackingIntent
 }
 
 /**

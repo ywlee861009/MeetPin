@@ -1,5 +1,13 @@
 # phase5 (선택): 데모 그룹으로 바로 진입하는 디버그 단축
 
+> ✅ 완료 (2026-07-31). 채택: **구현 방향 1(디버그 진입 버튼)**.
+> 단, 티켓 원안의 `FakeMeetPinRepository.createDemoGroup()` 신설은 **채택하지 않음** —
+> 도메인 인터페이스가 커지는 것을 피하려고 기존 `createGroup`(호스트+친구2 시드) +
+> `updateInviteStatus(ACCEPTED)`(전원 승낙→ACTIVE) 조합으로 `CreatePinViewModel`에서
+> 처리했다. CreatePinScreen에 `showDebugTools`(=BuildConfig.DEBUG) 게이팅된
+> "🧪 데모 트래킹 열기"(MeetPinSecondaryButton) 추가. 진입은 기존 `onNavigateToLiveTracking`
+> 콜백(popUpTo+launchSingleTop) 재사용 → 백스택 중복 누적 없음, release 미노출.
+
 ## 문제 / 목표
 UI를 반복해서 보려면 매번 "핀 생성 → 대기실 → 승낙 → 트래킹"을 거쳐야 한다.
 데모/디버그 시 이 과정을 건너뛰고 **트래킹 화면으로 즉시 진입**하는 단축을 둔다.

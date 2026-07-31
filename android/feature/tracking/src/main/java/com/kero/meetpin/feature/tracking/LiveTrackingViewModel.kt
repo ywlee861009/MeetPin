@@ -11,6 +11,7 @@ import com.kero.meetpin.core.model.InviteStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
@@ -46,6 +47,7 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.SendChat -> sendChat(intent.message)
             is LiveTrackingIntent.SimulateGuestAccept -> simulateGuestAccept()
             is LiveTrackingIntent.SimulateGuestChat -> simulateGuestChat(intent.friendIndex)
+            is LiveTrackingIntent.SimulateFriendsDeparture -> simulateFriendsDeparture()
         }
     }
 
@@ -62,21 +64,34 @@ class LiveTrackingViewModel @Inject constructor(
      */
     private val reportedArrivals = mutableSetOf<String>()
 
+    /**
+     * [데모] 친구 이동 진행도(0f=출발지, 1f=목적지). [simulateFriendsDeparture]가 시간에 따라
+     * 0→1로 올리면, 친구 마커 좌표가 출발지→핀으로 보간되어 이동·도착이 재생된다.
+     * 데모 이동을 트리거하기 전에는 0f로 고정되어 친구가 각자 위치(광화문/강남)에 머문다.
+     */
+    private val demoDepartureProgress = MutableStateFlow(0f)
+
+    /** [데모] 이동 진행도를 올리는 코루틴. 재진입/재트리거 시 이전 것을 취소한다. */
+    private var demoDepartureJob: Job? = null
+
     private fun startTracking(groupId: String) {
         updateState { copy(groupId = groupId, isLoading = true) }
 
         trackingJob?.cancel()
+        demoDepartureJob?.cancel()
+        demoDepartureProgress.value = 0f
         reportedArrivals.clear()
 
-        // 그룹 상태 + 내 실시간 GPS를 동시 관찰.
+        // 그룹 상태 + 내 실시간 GPS + 데모 이동 진행도를 동시 관찰.
         // 내 위치는 항상 실제 GPS를 쓰되, 아직 안 들어왔거나 권한이 없으면 핀으로 폴백한다.
         trackingJob = combine(
             meetPinRepository.observeGroup(groupId),
             locationRepository.getCurrentLocation()
                 .map<_, GeoPoint?> { GeoPoint(it.latitude, it.longitude) }
                 .onStart { emit(null) }
-                .catch { emit(null) }
-        ) { group, myLocation ->
+                .catch { emit(null) },
+            demoDepartureProgress
+        ) { group, myLocation, departureProgress ->
             currentHostId = group.hostId
             val pinLocation = group.pinLocation
             val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
@@ -95,11 +110,14 @@ class LiveTrackingViewModel @Inject constructor(
             val markers = accepted.map { participant ->
                 val isHost = participant.userId == group.hostId
                 // 호스트(나) = 실제 GPS(없으면 핀), 친구 = 순번별 데모 좌표(광화문/강남…).
+                // 친구는 데모 이동 진행도(departureProgress)에 따라 출발지→핀으로 보간 이동한다.
                 val position = when {
                     isHost -> myLocation ?: pinLatLng
                     else -> {
                         val friendIndex = friendIndexByUserId[participant.userId]
-                        friendIndex?.let { demoFriendLocation(it) } ?: pinLatLng
+                        friendIndex?.let { index ->
+                            lerp(demoFriendLocation(index), pinLatLng, departureProgress)
+                        } ?: pinLatLng
                     }
                 }
 
@@ -258,15 +276,47 @@ class LiveTrackingViewModel @Inject constructor(
     }
 
     /**
-     * [데모] 친구 순번(index)에 대응하는 고정 좌표를 돌려준다.
+     * [DEBUG 전용] 친구들이 약속 장소로 출발해 도착하는 상황을 재현한다.
+     * 진행도를 [DEMO_TRAVEL_STEPS]단계에 걸쳐 0→1로 올리면, combine이 매 단계 재방출되어
+     * 친구 마커가 목적지 핀 쪽으로 보간 이동한다. 반경(50m) 진입 시 기존 도착 감지 경로가
+     * 발동해 [MeetPinRepository.reportArrival] → 체크마크·"도착 완료!" 라벨이 켜진다.
+     */
+    private fun simulateFriendsDeparture() {
+        demoDepartureJob?.cancel()
+        demoDepartureJob = viewModelScope.launch {
+            for (step in 1..DEMO_TRAVEL_STEPS) {
+                delay(DEMO_TRAVEL_STEP_MS)
+                demoDepartureProgress.value = step.toFloat() / DEMO_TRAVEL_STEPS
+            }
+        }
+    }
+
+    /**
+     * [데모] 친구 순번(index)에 대응하는 고정 출발 좌표를 돌려준다.
      * 좌표 개수보다 친구가 많으면 순환시켜 마커가 핀에 겹치지 않게 한다.
      */
     private fun demoFriendLocation(friendIndex: Int): GeoPoint =
         DEMO_FRIEND_LOCATIONS[friendIndex % DEMO_FRIEND_LOCATIONS.size]
 
+    /** [데모] 두 좌표를 [t](0f..1f)로 선형 보간한다. 데모 이동 경로 계산용. */
+    private fun lerp(from: GeoPoint, to: GeoPoint, t: Float): GeoPoint =
+        GeoPoint(
+            latitude = from.latitude + (to.latitude - from.latitude) * t,
+            longitude = from.longitude + (to.longitude - from.longitude) * t
+        )
+
     private companion object {
         /** 말풍선 표시 유지 시간 */
         const val CHAT_BUBBLE_DURATION_MS = 4_000L
+
+        /** [데모] 친구 이동 시뮬레이션 단계 수. 각 단계마다 마커가 1초 tween으로 보간 이동한다. */
+        const val DEMO_TRAVEL_STEPS = 12
+
+        /**
+         * [데모] 이동 단계 간 간격. 마커 tween(1초)보다 약간 길게 두어 끊김 없이 이어지게 한다.
+         * (총 이동 시간 ≈ DEMO_TRAVEL_STEPS × 이 값 = 약 14초)
+         */
+        const val DEMO_TRAVEL_STEP_MS = 1_200L
 
         /** [데모] 친구 위치 — 참가자 순번대로 배정. 0=광화문 광장, 1=강남역. */
         val DEMO_FRIEND_LOCATIONS = listOf(

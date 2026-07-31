@@ -1,5 +1,13 @@
 # phase4 (선택): 친구 이동 애니메이션 + 도착 상태 데모
 
+> ✅ 완료 (2026-07-31). 채택: **안 B(index 기반)에 이동 진행도 추가**.
+> `LiveTrackingViewModel`에 `demoDepartureProgress`(0→1) StateFlow를 두고 기존 combine을
+> 3-way로 확장, 친구 좌표를 `lerp(출발지, 핀, progress)`로 보간. 진행도는 "🧪 친구 출발 →
+> 도착" 디버그 버튼(`SimulateFriendsDeparture`)이 `DEMO_TRAVEL_STEPS`단계에 걸쳐 올린다.
+> 도착 전환은 별도 로직 없이 기존 반경 감지 → `reportArrival` 경로가 그대로 발동한다
+> (post-navigation-gaps/phase4와 설계 통일). 트리거 전에는 progress=0으로 정적 3마커 유지.
+> 버튼은 `adaptive-tablet-ui` 재구성 후의 `TrackingHeader.onSimulateDeparture` 콜백에 배선.
+
 ## 문제 / 목표
 정적 위치만으로도 phase1~3이면 데모의 핵심은 충족된다. 여기서는 "친구가 목적지로
 점점 다가오는" 보간 애니메이션과 "도착"으로 전환되는 모습까지 보고 싶을 때를 다룬다.

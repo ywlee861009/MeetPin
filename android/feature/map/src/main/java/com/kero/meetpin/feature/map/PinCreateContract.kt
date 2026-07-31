@@ -28,6 +28,12 @@ sealed interface PinCreateIntent : UiIntent {
     data object SubmitPin : PinCreateIntent
     data object ClearSelection : PinCreateIntent
     data object DismissError : PinCreateIntent
+
+    /**
+     * [DEBUG 전용] 핀 생성 → 대기실 → 승낙 단계를 건너뛰고,
+     * 전원 승낙된 데모 그룹을 즉시 만들어 실시간 지도로 진입한다.
+     */
+    data object CreateDemoGroup : PinCreateIntent
 }
 
 /**

@@ -164,6 +164,9 @@ fun LiveTrackingScreen(
             onSimulateChat = { index ->
                 viewModel.processIntent(LiveTrackingIntent.SimulateGuestChat(friendIndex = index))
             },
+            onSimulateDeparture = {
+                viewModel.processIntent(LiveTrackingIntent.SimulateFriendsDeparture)
+            },
         )
     }
     val participantSheet: @Composable (Modifier) -> Unit = { sheetModifier ->
@@ -268,6 +271,7 @@ private fun TrackingHeader(
     onStopSharing: () -> Unit,
     onSimulateAccept: () -> Unit,
     onSimulateChat: (Int) -> Unit,
+    onSimulateDeparture: () -> Unit,
 ) {
     // 상단 라이브 공유 안내 바
     LiveSharingTopBar(
@@ -313,6 +317,11 @@ private fun TrackingHeader(
                     modifier = Modifier.weight(1f)
                 )
             }
+            MeetPinSecondaryButton(
+                text = "🧪 친구 출발 → 도착",
+                onClick = onSimulateDeparture,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
