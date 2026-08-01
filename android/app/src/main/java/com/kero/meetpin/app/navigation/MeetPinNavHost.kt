@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.kero.meetpin.app.BuildConfig
+import com.kero.meetpin.app.permission.LocationPermissionScaffold
 import com.kero.meetpin.app.permission.rememberLocationPermissionGranted
 import com.kero.meetpin.feature.lobby.InviteAcceptScreen
 import com.kero.meetpin.feature.map.CreatePinScreen
@@ -73,18 +74,20 @@ fun MeetPinNavHost(
         startDestination = startDestination
     ) {
         composable(route = MeetPinRoute.CREATE_PIN) {
-            CreatePinScreen(
-                hasLocationPermission = hasLocationPermission,
-                // 핀 생성 없이 데모 그룹으로 바로 진입하는 버튼은 debug 빌드에서만 노출한다.
-                showDebugTools = BuildConfig.DEBUG,
-                onNavigateToLiveTracking = { groupId ->
-                    navController.navigate(MeetPinRoute.liveTracking(groupId)) {
-                        // 생성 후 뒤로가기로 돌아가 중복 생성하는 것을 막는다.
-                        popUpTo(MeetPinRoute.CREATE_PIN) { inclusive = true }
-                        launchSingleTop = true
+            LocationPermissionScaffold(hasPermission = hasLocationPermission) {
+                CreatePinScreen(
+                    hasLocationPermission = hasLocationPermission,
+                    // 핀 생성 없이 데모 그룹으로 바로 진입하는 버튼은 debug 빌드에서만 노출한다.
+                    showDebugTools = BuildConfig.DEBUG,
+                    onNavigateToLiveTracking = { groupId ->
+                        navController.navigate(MeetPinRoute.liveTracking(groupId)) {
+                            // 생성 후 뒤로가기로 돌아가 중복 생성하는 것을 막는다.
+                            popUpTo(MeetPinRoute.CREATE_PIN) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         composable(
@@ -93,12 +96,14 @@ fun MeetPinNavHost(
                 navArgument(MeetPinRoute.ARG_GROUP_ID) { type = NavType.StringType }
             )
         ) { entry ->
-            LiveTrackingScreen(
-                groupId = entry.requireArg(MeetPinRoute.ARG_GROUP_ID),
-                hasLocationPermission = hasLocationPermission,
-                // 단일 기기 시연을 위한 '상대 수락 시뮬' 버튼은 debug 빌드에서만 노출한다.
-                showDebugTools = BuildConfig.DEBUG
-            )
+            LocationPermissionScaffold(hasPermission = hasLocationPermission) {
+                LiveTrackingScreen(
+                    groupId = entry.requireArg(MeetPinRoute.ARG_GROUP_ID),
+                    hasLocationPermission = hasLocationPermission,
+                    // 단일 기기 시연을 위한 '상대 수락 시뮬' 버튼은 debug 빌드에서만 노출한다.
+                    showDebugTools = BuildConfig.DEBUG
+                )
+            }
         }
 
         composable(

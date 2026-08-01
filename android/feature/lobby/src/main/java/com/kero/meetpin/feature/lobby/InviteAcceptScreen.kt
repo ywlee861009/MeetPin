@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kero.meetpin.core.designsystem.component.MeetPinButton
 import com.kero.meetpin.core.designsystem.component.MeetPinCard
+import com.kero.meetpin.core.designsystem.component.MeetPinGhostButton
 import com.kero.meetpin.core.designsystem.component.MeetPinSecondaryButton
 import com.kero.meetpin.core.model.MeetPinGroup
 import kotlinx.coroutines.flow.collectLatest
@@ -105,6 +106,21 @@ fun InviteAcceptScreen(
                             text = state.errorMessage ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error
+                        )
+                        // 실패 화면이 막다른 길이 되지 않도록 재시도/돌아가기 경로를 제공한다.
+                        Spacer(modifier = Modifier.height(24.dp))
+                        MeetPinButton(
+                            text = "다시 시도",
+                            onClick = {
+                                viewModel.processIntent(InviteAcceptIntent.LoadInvite(inviteCode))
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        MeetPinGhostButton(
+                            text = "돌아가기",
+                            onClick = onNavigateBack,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
