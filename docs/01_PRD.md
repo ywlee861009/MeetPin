@@ -1,5 +1,8 @@
 # 📄 01. PRD (Product Requirement Document) - MeetPin
 
+> **⚠️ 구현 현황 — 「단일 기기 데모 / 백엔드 미구현」 단계 (2026-08-01 기준)**
+> 이 문서는 목표 스펙입니다. 현재 코드는 백엔드·실시간 서버가 없어(`:core:network` 비어 있음, 인메모리 `FakeMeetPinRepository`만 존재) **기기 간 실시간 위치 공유는 동작하지 않으며**, 친구 위치·이동·도착은 단일 기기 내 데모 시뮬레이션입니다. 아키텍처·UI·화면 플로우는 데모로 동작합니다.
+
 ## 1. 개요 (Overview)
 - **제품명**: MeetPin (밋핀)
 - **플랫폼**: Android (Android 8.0 Oreo / API 26 이상 권장)

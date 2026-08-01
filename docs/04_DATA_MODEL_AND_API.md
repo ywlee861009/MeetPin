@@ -1,5 +1,8 @@
 # 📊 04. Data Model & API Specification (데이터 모델 및 API 명세서)
 
+> **⚠️ 구현 현황 — 「단일 기기 데모 / 백엔드 미구현」 단계 (2026-08-01 기준)**
+> **1장의 데이터 모델(도메인 엔티티)은 `:core:model`에 실제로 구현돼 있습니다.** 반면 **3장의 WebSocket/Firebase 실시간 프로토콜(`SEND_LOCATION`, `LOCATION_UPDATED`, `GROUP_STATUS_CHANGED`, `USER_ARRIVED`)과 2장의 서버 측 딥링크 처리는 아직 구현되지 않았습니다.** 현재 상태 전이·좌표 전달은 인메모리 `FakeMeetPinRepository` 내부에서만 이뤄지는 단일 기기 데모입니다.
+
 ## 1. 데이터 모델 명세 (Data Models - Kotlin / JSON)
 
 ### 1.1 `MeetPinGroup` (약속 모임 정보)

@@ -1,5 +1,8 @@
 # 🏗️ 02. Architecture (시스템 & 앱 아키텍처 정의서)
 
+> **⚠️ 구현 현황 — 「단일 기기 데모 / 백엔드 미구현」 단계 (2026-08-01 기준)**
+> 이 문서는 목표 아키텍처(To-Be)입니다. 아래 기술 스택·시퀀스 다이어그램·위치 파이프라인 중 **서버 측(WebSocket/Firebase, Realtime Server, Broadcast)과 `:core:network` 계층은 아직 구현되지 않았습니다.** 현재는 인메모리 `FakeMeetPinRepository`가 서버 역할을 대신하는 단일 기기 데모입니다. 실제 구현 시 `MeetPinRepository` 인터페이스는 그대로 두고 `DataModule` 바인딩만 네트워크 구현체로 교체하도록 설계돼 있습니다.
+
 ## 1. 기술 스택 (Technology Stack)
 
 ### 1.1 Android Client
