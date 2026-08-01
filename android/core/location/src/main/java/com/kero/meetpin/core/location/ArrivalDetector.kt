@@ -1,6 +1,5 @@
 package com.kero.meetpin.core.location
 
-import android.location.Location
 import com.kero.meetpin.core.model.PinLocation
 
 /**
@@ -9,11 +8,13 @@ import com.kero.meetpin.core.model.PinLocation
  * 현재 위치와 약속 핀 위치 간의 거리를 계산하여
  * 반경(기본 50m) 이내 진입 시 도착(Arrived) 이벤트를 발생시킨다.
  *
- * Haversine 공식 대신 Android의 Location.distanceBetween을 활용하여
- * 정밀한 거리 계산을 수행한다.
+ * 실제 거리 계산은 [DistanceCalculator] seam에 위임한다. 프로덕션 기본값은
+ * Android [android.location.Location] 기반의 [AndroidDistanceCalculator]이며,
+ * 단위 테스트에서는 결정론적 Fake를 주입해 판정 로직만 검증한다.
  */
 class ArrivalDetector(
-    private val arrivalRadiusMeters: Float = DEFAULT_ARRIVAL_RADIUS_METERS
+    private val arrivalRadiusMeters: Float = DEFAULT_ARRIVAL_RADIUS_METERS,
+    private val distanceCalculator: DistanceCalculator = AndroidDistanceCalculator
 ) {
 
     /**
@@ -38,7 +39,7 @@ class ArrivalDetector(
 
     /**
      * 현재 위치와 약속 장소 간의 거리(미터)를 계산한다.
-     * Android의 Location.distanceBetween 사용.
+     * 실제 계산은 [DistanceCalculator]에 위임한다.
      *
      * @param currentLat 현재 위도
      * @param currentLng 현재 경도
@@ -51,15 +52,10 @@ class ArrivalDetector(
         currentLng: Double,
         targetLat: Double,
         targetLng: Double
-    ): Float {
-        val results = FloatArray(1)
-        Location.distanceBetween(
-            currentLat, currentLng,
-            targetLat, targetLng,
-            results
-        )
-        return results[0]
-    }
+    ): Float = distanceCalculator.distanceMeters(
+        currentLat, currentLng,
+        targetLat, targetLng
+    )
 
     /**
      * 도착 이벤트를 감지한다.
