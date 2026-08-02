@@ -33,6 +33,8 @@ import com.kero.meetpin.feature.tracking.LiveTrackingScreen
  *   딥링크 cold start로 진입한 경우 초대 수락 화면으로 대체된다.
  * @param pendingInviteCode 앱 실행 중 딥링크로 도착한 초대 코드 (warm start). 없으면 `null`.
  * @param onPendingInviteCodeHandled [pendingInviteCode]를 소비했음을 알린다.
+ * @param pendingTrackingGroupId 앱 실행 중 출발 알림을 탭해 도착한 약속 id (warm start). 없으면 `null`.
+ * @param onPendingTrackingGroupIdHandled [pendingTrackingGroupId]를 소비했음을 알린다.
  * @param onExitApp 백스택이 비어 뒤로가기를 처리할 수 없을 때 앱을 종료한다.
  */
 @Composable
@@ -41,6 +43,8 @@ fun MeetPinNavHost(
     startDestination: String = MeetPinRoute.CREATE_PIN,
     pendingInviteCode: String? = null,
     onPendingInviteCodeHandled: () -> Unit = {},
+    pendingTrackingGroupId: String? = null,
+    onPendingTrackingGroupIdHandled: () -> Unit = {},
     onExitApp: () -> Unit = {}
 ) {
     val hasLocationPermission = rememberLocationPermissionGranted()
@@ -65,6 +69,15 @@ fun MeetPinNavHost(
         val code = pendingInviteCode ?: return@LaunchedEffect
         onPendingInviteCodeHandled()
         navController.navigate(MeetPinRoute.inviteAccept(code)) {
+            launchSingleTop = true
+        }
+    }
+
+    // warm start 딥링크: 출발 알림 탭으로 도착한 약속의 실시간 지도로 이동한다.
+    LaunchedEffect(pendingTrackingGroupId) {
+        val groupId = pendingTrackingGroupId ?: return@LaunchedEffect
+        onPendingTrackingGroupIdHandled()
+        navController.navigate(MeetPinRoute.liveTracking(groupId)) {
             launchSingleTop = true
         }
     }

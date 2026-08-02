@@ -41,6 +41,12 @@ class MainActivity : ComponentActivity() {
      */
     private val pendingInviteCode = MutableStateFlow<String?>(null)
 
+    /**
+     * 앱이 실행 중일 때 출발 알림(meetpin://track/{groupId})을 탭해 도착한 약속 id.
+     * cold start는 시작 목적지 교체로 처리하고, 이 흐름은 `onNewIntent` warm start 재진입만 담당한다.
+     */
+    private val pendingTrackingGroupId = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -49,6 +55,8 @@ class MainActivity : ComponentActivity() {
         // createPin을 먼저 띄우고 이동하면 한 프레임 동안 핀 생성 화면이 깜빡이고,
         // 초대받은 사용자가 뒤로가기를 눌렀을 때 남의 약속 생성 화면으로 떨어진다.
         val startInviteCode = DeepLinkHandler.extractInviteCode(intent)
+        // 출발 알림 딥링크로 cold start한 경우: 곧바로 해당 약속의 실시간 지도를 시작 목적지로 띄운다.
+        val startTrackingGroupId = DeepLinkHandler.extractTrackingGroupId(intent)
 
         setContent {
             MeetPinTheme {
@@ -69,12 +77,18 @@ class MainActivity : ComponentActivity() {
                     LocalWindowSizeClass provides windowSizeClass,
                 ) {
                     val inviteCode by pendingInviteCode.collectAsStateWithLifecycle()
+                    val trackingGroupId by pendingTrackingGroupId.collectAsStateWithLifecycle()
                     MeetPinNavHost(
-                        startDestination = startInviteCode
-                            ?.let(MeetPinRoute::inviteAccept)
-                            ?: MeetPinRoute.CREATE_PIN,
+                        // cold start 시작 목적지 우선순위: 초대 수락 > 출발 알림 트래킹 > 핀 생성.
+                        startDestination = when {
+                            startInviteCode != null -> MeetPinRoute.inviteAccept(startInviteCode)
+                            startTrackingGroupId != null -> MeetPinRoute.liveTracking(startTrackingGroupId)
+                            else -> MeetPinRoute.CREATE_PIN
+                        },
                         pendingInviteCode = inviteCode,
                         onPendingInviteCodeHandled = { pendingInviteCode.value = null },
+                        pendingTrackingGroupId = trackingGroupId,
+                        onPendingTrackingGroupIdHandled = { pendingTrackingGroupId.value = null },
                         onExitApp = { finish() }
                     )
                 }
@@ -87,5 +101,6 @@ class MainActivity : ComponentActivity() {
         // setIntent를 호출하지 않으면 이후 getIntent()가 최초 intent를 계속 반환한다.
         setIntent(intent)
         DeepLinkHandler.extractInviteCode(intent)?.let { pendingInviteCode.value = it }
+        DeepLinkHandler.extractTrackingGroupId(intent)?.let { pendingTrackingGroupId.value = it }
     }
 }

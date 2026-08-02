@@ -1,6 +1,7 @@
 package com.kero.meetpin.core.location.di
 
 import android.content.Context
+import androidx.work.WorkManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.kero.meetpin.core.domain.repository.LocationRepository
@@ -47,4 +48,14 @@ object LocationModule {
     @Provides
     @Singleton
     fun provideArrivalDetector(): ArrivalDetector = ArrivalDetector()
+
+    /**
+     * 출발 알림 스케줄러([DepartureAlertScheduler])가 주입받는 WorkManager.
+     * 앱 기본 초기화(androidx.startup)로 생성된 싱글턴 인스턴스를 그대로 공급한다.
+     */
+    @Provides
+    @Singleton
+    fun provideWorkManager(
+        @ApplicationContext context: Context
+    ): WorkManager = WorkManager.getInstance(context)
 }

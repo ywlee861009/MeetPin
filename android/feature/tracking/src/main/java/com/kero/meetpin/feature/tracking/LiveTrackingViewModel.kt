@@ -6,6 +6,7 @@ import com.kero.meetpin.core.domain.repository.LocationRepository
 import com.kero.meetpin.core.domain.repository.MeetPinRepository
 import com.kero.meetpin.core.domain.usecase.CalculateEtaUseCase
 import com.kero.meetpin.core.location.ArrivalDetector
+import com.kero.meetpin.core.location.DepartureAlertScheduler
 import com.kero.meetpin.core.model.GeoPoint
 import com.kero.meetpin.core.model.InviteStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,7 +37,8 @@ class LiveTrackingViewModel @Inject constructor(
     private val meetPinRepository: MeetPinRepository,
     private val locationRepository: LocationRepository,
     private val arrivalDetector: ArrivalDetector,
-    private val calculateEta: CalculateEtaUseCase
+    private val calculateEta: CalculateEtaUseCase,
+    private val departureAlertScheduler: DepartureAlertScheduler
 ) : BaseViewModel<LiveTrackingState, LiveTrackingIntent, LiveTrackingEffect>(LiveTrackingState()) {
 
     override fun processIntent(intent: LiveTrackingIntent) {
@@ -48,6 +50,7 @@ class LiveTrackingViewModel @Inject constructor(
             is LiveTrackingIntent.SimulateGuestAccept -> simulateGuestAccept()
             is LiveTrackingIntent.SimulateGuestChat -> simulateGuestChat(intent.friendIndex)
             is LiveTrackingIntent.SimulateFriendsDeparture -> simulateFriendsDeparture()
+            is LiveTrackingIntent.TriggerDepartureCheckNow -> triggerDepartureCheckNow()
         }
     }
 
@@ -63,6 +66,18 @@ class LiveTrackingViewModel @Inject constructor(
      * 중복 호출되지 않도록 막는다. (리포지토리도 멱등이지만 불필요한 호출 자체를 줄인다.)
      */
     private val reportedArrivals = mutableSetOf<String>()
+
+    /**
+     * 출발 알림 주기 작업을 이미 등록한 약속 id. 그룹 상태가 매 emission마다 재방출되어도
+     * [DepartureAlertScheduler.schedule]을 그룹당 한 번만 호출하도록 막는다.
+     */
+    private var departureAlertScheduledFor: String? = null
+
+    /**
+     * 최근 관찰한 그룹. [TriggerDepartureCheckNow] 디버그 트리거가 즉시 출발 판정을 돌릴 때
+     * 약속 시각·목적지를 넘기기 위해 캐시한다(state에는 scheduledAt이 없다).
+     */
+    private var latestGroup: com.kero.meetpin.core.model.MeetPinGroup? = null
 
     /**
      * [데모] 친구 이동 진행도(0f=출발지, 1f=목적지). [simulateFriendsDeparture]가 시간에 따라
@@ -81,6 +96,7 @@ class LiveTrackingViewModel @Inject constructor(
         demoDepartureJob?.cancel()
         demoDepartureProgress.value = 0f
         reportedArrivals.clear()
+        departureAlertScheduledFor = null
 
         // 그룹 상태 + 내 실시간 GPS + 데모 이동 진행도를 동시 관찰.
         // 내 위치는 항상 실제 GPS를 쓰되, 아직 안 들어왔거나 권한이 없으면 핀으로 폴백한다.
@@ -93,6 +109,14 @@ class LiveTrackingViewModel @Inject constructor(
             demoDepartureProgress
         ) { group, myLocation, departureProgress ->
             currentHostId = group.hostId
+            latestGroup = group
+
+            // 약속 정보(약속 시각·목적지)가 확보되면 출발 알림 주기 체크를 등록한다. 그룹당 1회.
+            if (departureAlertScheduledFor != group.id) {
+                departureAlertScheduledFor = group.id
+                departureAlertScheduler.schedule(group)
+            }
+
             val pinLocation = group.pinLocation
             val pinLatLng = GeoPoint(pinLocation.latitude, pinLocation.longitude)
 
@@ -194,6 +218,10 @@ class LiveTrackingViewModel @Inject constructor(
         updateState { copy(isLocationSharingActive = false) }
         sendEffect(LiveTrackingEffect.StopLocationService)
 
+        // 위치 공유를 끄면 출발 알림도 더 이상 의미가 없으므로 주기 작업을 취소한다.
+        currentState.groupId.takeIf { it.isNotBlank() }
+            ?.let(departureAlertScheduler::cancel)
+
         // TODO: 서버에 종료 알림 (API 필요)
     }
 
@@ -289,6 +317,15 @@ class LiveTrackingViewModel @Inject constructor(
                 demoDepartureProgress.value = step.toFloat() / DEMO_TRAVEL_STEPS
             }
         }
+    }
+
+    /**
+     * [DEBUG 전용] 출발 판정을 즉시 1회 실행한다. 실제 Worker 경로를 태우므로,
+     * 위치가 잡히고 출발 조건이 성립하면 실제 출발 알림이 발송된다.
+     */
+    private fun triggerDepartureCheckNow() {
+        val group = latestGroup ?: return
+        departureAlertScheduler.checkNow(group)
     }
 
     /**

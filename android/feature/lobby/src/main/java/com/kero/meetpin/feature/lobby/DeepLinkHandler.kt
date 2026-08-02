@@ -6,15 +6,17 @@ import android.net.Uri
 /**
  * MeetPin 딥링크 파서.
  *
- * 딥링크 URL에서 초대 코드(inviteCode)를 추출한다.
+ * 딥링크 URL에서 초대 코드(inviteCode) 또는 출발 알림의 약속 id(groupId)를 추출한다.
  * 지원 형식:
  * - https://meetpin.app/invite/{inviteCode}
  * - meetpin://invite?code={inviteCode}
+ * - meetpin://track/{groupId}   (출발 알림 → 실시간 지도)
  */
 object DeepLinkHandler {
 
     private const val HOST_WEB = "meetpin.app"
     private const val HOST_APP = "invite"
+    private const val HOST_TRACK = "track"
     private const val PATH_PREFIX = "/invite/"
     private const val QUERY_CODE = "code"
 
@@ -44,5 +46,16 @@ object DeepLinkHandler {
             }
             else -> null
         }
+    }
+
+    /**
+     * Intent에서 출발 알림 딥링크(meetpin://track/{groupId})의 약속 id를 추출한다.
+     *
+     * @return 약속 id 또는 null (출발 알림 딥링크가 아닌 경우)
+     */
+    fun extractTrackingGroupId(intent: Intent?): String? {
+        val uri = intent?.data ?: return null
+        if (uri.scheme != "meetpin" || uri.host != HOST_TRACK) return null
+        return uri.lastPathSegment?.takeIf { it.isNotBlank() }
     }
 }

@@ -30,6 +30,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.kotlinx.coroutines.play.services)
 
+    // 출발 알림: 백그라운드 주기 체크 (eta-departure-alert)
+    implementation(libs.androidx.work.runtime.ktx)
+
     // Hilt DI
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

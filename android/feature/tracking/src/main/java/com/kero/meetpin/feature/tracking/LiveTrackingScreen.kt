@@ -1,6 +1,7 @@
 package com.kero.meetpin.feature.tracking
 
 import android.content.Context
+import android.widget.Toast
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -167,6 +168,14 @@ fun LiveTrackingScreen(
             onSimulateDeparture = {
                 viewModel.processIntent(LiveTrackingIntent.SimulateFriendsDeparture)
             },
+            onTriggerDepartureCheck = {
+                viewModel.processIntent(LiveTrackingIntent.TriggerDepartureCheckNow)
+                Toast.makeText(
+                    context,
+                    "출발 알림 체크 실행 — 상단 알림을 확인하세요",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
         )
     }
     val participantSheet: @Composable (Modifier) -> Unit = { sheetModifier ->
@@ -272,6 +281,7 @@ private fun TrackingHeader(
     onSimulateAccept: () -> Unit,
     onSimulateChat: (Int) -> Unit,
     onSimulateDeparture: () -> Unit,
+    onTriggerDepartureCheck: () -> Unit,
 ) {
     // 상단 라이브 공유 안내 바
     LiveSharingTopBar(
@@ -320,6 +330,11 @@ private fun TrackingHeader(
             MeetPinSecondaryButton(
                 text = "🧪 친구 출발 → 도착",
                 onClick = onSimulateDeparture,
+                modifier = Modifier.fillMaxWidth()
+            )
+            MeetPinSecondaryButton(
+                text = "🧪 출발 알림 테스트",
+                onClick = onTriggerDepartureCheck,
                 modifier = Modifier.fillMaxWidth()
             )
         }

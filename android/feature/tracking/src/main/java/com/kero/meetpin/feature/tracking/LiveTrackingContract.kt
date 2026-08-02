@@ -63,6 +63,13 @@ sealed interface LiveTrackingIntent : UiIntent {
      * 누르면 친구 마커가 목적지 핀 쪽으로 보간 이동하고, 반경 진입 시 도착 상태로 전환된다.
      */
     data object SimulateFriendsDeparture : LiveTrackingIntent
+
+    /**
+     * [DEBUG 전용] 출발 알림 주기(최소 15분)를 기다리지 않고 출발 판정을 즉시 1회 실행한다.
+     * 실제 [com.kero.meetpin.core.location.DepartureCheckWorker] 경로(위치→ETA→판정→알림)를
+     * 그대로 태워 e2e 확인용으로 쓴다.
+     */
+    data object TriggerDepartureCheckNow : LiveTrackingIntent
 }
 
 /**

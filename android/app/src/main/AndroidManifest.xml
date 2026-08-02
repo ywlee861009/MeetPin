@@ -68,6 +68,19 @@
                     android:scheme="meetpin"
                     android:host="invite" />
             </intent-filter>
+
+            <!--
+                출발 알림 탭 → 실시간 지도 딥링크 (meetpin://track/{groupId}).
+                로컬 알림에서만 생성하는 내부 링크라 커스텀 스킴을 쓰며 autoVerify가 필요 없다.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="meetpin"
+                    android:host="track" />
+            </intent-filter>
         </activity>
 
         <!-- Location Tracking Foreground Service -->
